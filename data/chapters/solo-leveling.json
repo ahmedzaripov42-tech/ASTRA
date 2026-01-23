@@ -1,0 +1,52 @@
+[
+  {
+    "chapter": 1,
+    "title": "The Weakest Hunter",
+    "date": "2024-01-15",
+    "images": [
+      "assets/chapters/solo-leveling/ch1-1.jpg",
+      "assets/chapters/solo-leveling/ch1-2.jpg",
+      "assets/chapters/solo-leveling/ch1-3.jpg"
+    ]
+  },
+  {
+    "chapter": 2,
+    "title": "The Double Dungeon",
+    "date": "2024-01-22",
+    "images": [
+      "assets/chapters/solo-leveling/ch2-1.jpg",
+      "assets/chapters/solo-leveling/ch2-2.jpg",
+      "assets/chapters/solo-leveling/ch2-3.jpg"
+    ]
+  },
+  {
+    "chapter": 3,
+    "title": "The System",
+    "date": "2024-01-29",
+    "images": [
+      "assets/chapters/solo-leveling/ch3-1.jpg",
+      "assets/chapters/solo-leveling/ch3-2.jpg",
+      "assets/chapters/solo-leveling/ch3-3.jpg"
+    ]
+  },
+  {
+    "chapter": 4,
+    "title": "Level Up",
+    "date": "2024-02-05",
+    "images": [
+      "assets/chapters/solo-leveling/ch4-1.jpg",
+      "assets/chapters/solo-leveling/ch4-2.jpg",
+      "assets/chapters/solo-leveling/ch4-3.jpg"
+    ]
+  },
+  {
+    "chapter": 5,
+    "title": "The First Quest",
+    "date": "2024-02-12",
+    "images": [
+      "assets/chapters/solo-leveling/ch5-1.jpg",
+      "assets/chapters/solo-leveling/ch5-2.jpg",
+      "assets/chapters/solo-leveling/ch5-3.jpg"
+    ]
+  }
+]

@@ -1,0 +1,52 @@
+[
+  {
+    "chapter": 1,
+    "title": "Three Ways to Survive",
+    "date": "2024-01-14",
+    "images": [
+      "assets/chapters/omniscient-reader/ch1-1.jpg",
+      "assets/chapters/omniscient-reader/ch1-2.jpg",
+      "assets/chapters/omniscient-reader/ch1-3.jpg"
+    ]
+  },
+  {
+    "chapter": 2,
+    "title": "The First Scenario",
+    "date": "2024-01-21",
+    "images": [
+      "assets/chapters/omniscient-reader/ch2-1.jpg",
+      "assets/chapters/omniscient-reader/ch2-2.jpg",
+      "assets/chapters/omniscient-reader/ch2-3.jpg"
+    ]
+  },
+  {
+    "chapter": 3,
+    "title": "Yoo Jonghyuk",
+    "date": "2024-01-28",
+    "images": [
+      "assets/chapters/omniscient-reader/ch3-1.jpg",
+      "assets/chapters/omniscient-reader/ch3-2.jpg",
+      "assets/chapters/omniscient-reader/ch3-3.jpg"
+    ]
+  },
+  {
+    "chapter": 4,
+    "title": "The Dokkaebi",
+    "date": "2024-02-04",
+    "images": [
+      "assets/chapters/omniscient-reader/ch4-1.jpg",
+      "assets/chapters/omniscient-reader/ch4-2.jpg",
+      "assets/chapters/omniscient-reader/ch4-3.jpg"
+    ]
+  },
+  {
+    "chapter": 5,
+    "title": "Constellation",
+    "date": "2024-02-11",
+    "images": [
+      "assets/chapters/omniscient-reader/ch5-1.jpg",
+      "assets/chapters/omniscient-reader/ch5-2.jpg",
+      "assets/chapters/omniscient-reader/ch5-3.jpg"
+    ]
+  }
+]
