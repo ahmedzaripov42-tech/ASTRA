@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Manhwa - AZURA</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body data-page="manhwa">
+    <div class="app-root">
+        <!-- MANHWA DETAIL PAGE -->
+        <div id="manhwa-page" class="page active">
+            <header class="top-bar">
+                <button class="back-btn" aria-label="Back" onclick="window.location.href='index.html'">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <h1 class="logo">AZURA</h1>
+                <button class="profile-btn" aria-label="Profile">
+                    <img class="profile-avatar" src="assets/avatars/avatar-male.png" alt="Profile" />
+                </button>
+            </header>
+
+            <main class="detail-content">
+                <div class="detail-cover-container">
+                    <img class="detail-cover" id="detail-cover" src="" alt="">
+                    <div class="detail-overlay"></div>
+                </div>
+                
+                <div class="detail-info">
+                    <div class="detail-title-row">
+                        <h2 class="detail-title" id="detail-title">Yuklanmoqda...</h2>
+                        <button class="favorite-btn" id="favorite-btn" aria-label="Sevimlilarga qo'shish">
+                            <svg class="favorite-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="detail-rating" id="detail-rating">
+                        <div class="stars"></div>
+                        <span class="rating-value"></span>
+                    </div>
+                    <!-- Interactive rating component will be inserted here by JS -->
+                    <div class="detail-meta">
+                        <span class="chapter-count" id="detail-chapters">0 bob</span>
+                        <span class="view-count" id="detail-views">0 ko'rish</span>
+                    </div>
+                    <div class="detail-genres" id="detail-genres"></div>
+                    <p class="detail-description" id="detail-description"></p>
+                    <button class="start-reading-btn" id="start-reading-btn">O'QISHNI BOSHLASH</button>
+                </div>
+
+                <!-- Epic Community Chat Section (Above Chapters) -->
+                <div class="community-chat-section" id="community-chat-section">
+                    <div class="community-chat-header">
+                        <h3 class="community-chat-title">Jamiyat Muhokamasi</h3>
+                        <div class="community-chat-subtitle">Fikrlarni baham ko'ring</div>
+                    </div>
+                    <div class="community-chat-card">
+                        <div class="community-chat-form">
+                            <div class="comment-input-group">
+                                <input type="text" id="comment-username" class="comment-username-input" placeholder="Ism (ixtiyoriy, default: Guest)">
+                            </div>
+                            <div class="comment-input-group">
+                                <textarea id="comment-text" class="comment-text-input" placeholder="Fikringizni yozing..." rows="3"></textarea>
+                            </div>
+                            <button id="comment-submit-btn" class="comment-submit-btn">Yuborish</button>
+                        </div>
+                        <div class="community-chat-list" id="comments-list">
+                            <!-- Comments will be inserted here -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="chapters-list-container">
+                    <h3 class="chapters-title">Boblar</h3>
+                    <div class="chapters-list" id="chapters-list">
+                        <div class="empty-state">Boblar yuklanmoqda...</div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- CHAPTER SELECTOR MODAL -->
+    <div id="chapter-selector-modal" class="chapter-selector-modal">
+        <div class="chapter-selector-overlay"></div>
+        <div class="chapter-selector-content">
+            <div class="chapter-selector-header">
+                <h3 class="chapter-selector-title">Bobni tanlang</h3>
+                <button class="chapter-selector-close" id="chapter-selector-close" aria-label="Close">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="chapter-selector-list" id="chapter-selector-list">
+                <!-- Chapters will be inserted here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- BOTTOM NAVIGATION -->
+    <nav class="bottom-nav">
+        <button class="nav-item" data-page="home-page">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+            </svg>
+            <span>Asosiy</span>
+        </button>
+        <button class="nav-item" data-page="search-page">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="m21 21-4.35-4.35"></path>
+            </svg>
+            <span>Qidiruv</span>
+        </button>
+        <button class="nav-item" data-page="channels-page">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="7" height="7"></rect>
+                <rect x="14" y="3" width="7" height="7"></rect>
+                <rect x="14" y="14" width="7" height="7"></rect>
+                <rect x="3" y="14" width="7" height="7"></rect>
+            </svg>
+            <span>Kanallar</span>
+        </button>
+        <button class="nav-item" data-page="history-page">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+            </svg>
+            <span>Tarix</span>
+        </button>
+    </nav>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

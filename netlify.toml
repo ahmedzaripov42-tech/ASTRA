@@ -1,0 +1,12 @@
+[build]
+  functions = "netlify/functions"
+  publish = "."
+
+[build.environment]
+  # These will be set in Netlify Dashboard > Site settings > Environment variables
+  # GOOGLE_CLIENT_ID = "your-google-client-id.apps.googleusercontent.com"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
