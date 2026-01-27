@@ -1,0 +1,52 @@
+[
+  {
+    "chapter": 1,
+    "title": "Welcome to Wellston",
+    "date": "2024-01-11",
+    "images": [
+      "assets/chapters/unordinary/ch1-1.jpg",
+      "assets/chapters/unordinary/ch1-2.jpg",
+      "assets/chapters/unordinary/ch1-3.jpg"
+    ]
+  },
+  {
+    "chapter": 2,
+    "title": "The Cripple",
+    "date": "2024-01-18",
+    "images": [
+      "assets/chapters/unordinary/ch2-1.jpg",
+      "assets/chapters/unordinary/ch2-2.jpg",
+      "assets/chapters/unordinary/ch2-3.jpg"
+    ]
+  },
+  {
+    "chapter": 3,
+    "title": "Remi",
+    "date": "2024-01-25",
+    "images": [
+      "assets/chapters/unordinary/ch3-1.jpg",
+      "assets/chapters/unordinary/ch3-2.jpg",
+      "assets/chapters/unordinary/ch3-3.jpg"
+    ]
+  },
+  {
+    "chapter": 4,
+    "title": "The Hierarchy",
+    "date": "2024-02-01",
+    "images": [
+      "assets/chapters/unordinary/ch4-1.jpg",
+      "assets/chapters/unordinary/ch4-2.jpg",
+      "assets/chapters/unordinary/ch4-3.jpg"
+    ]
+  },
+  {
+    "chapter": 5,
+    "title": "The Truth",
+    "date": "2024-02-08",
+    "images": [
+      "assets/chapters/unordinary/ch5-1.jpg",
+      "assets/chapters/unordinary/ch5-2.jpg",
+      "assets/chapters/unordinary/ch5-3.jpg"
+    ]
+  }
+]

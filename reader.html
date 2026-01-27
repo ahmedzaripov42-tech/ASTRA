@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reader - AZURA</title>
+  
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/reader.css">
+</head>
+<body>
+  <div class="reader">
+    <!-- Reader Header -->
+    <header class="reader__header">
+      <div class="reader__header-content">
+        <h1 id="readerTitle" class="reader__title"></h1>
+        <div id="readerChapterInfo" class="reader__chapter-info"></div>
+        <div class="reader__controls">
+          <a href="index.html" class="btn btn--ghost">← Back</a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Reader Content -->
+    <div class="reader__content">
+      <div id="readerImages" class="reader__images"></div>
+    </div>
+
+    <!-- Reader Footer -->
+    <footer class="reader__footer">
+      <div class="reader__footer-content">
+        <button id="prevChapterBtn" class="btn btn--primary reader__nav-btn">← Previous</button>
+        <button id="nextChapterBtn" class="btn btn--primary reader__nav-btn">Next →</button>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Scripts -->
+  <script src="js/state.js"></script>
+  <script src="js/data-loader.js"></script>
+  <script src="js/manhwa.service.js"></script>
+  <script src="js/chapter.service.js"></script>
+  <script src="js/reader.service.js"></script>
+  <script src="js/search.service.js"></script>
+  <script src="js/ui-renderer.js"></script>
+  <script src="js/auth.ui.js"></script>
+  <script src="js/performance.js"></script>
+  <script src="js/bootstrap.js"></script>
+</body>
+</html>

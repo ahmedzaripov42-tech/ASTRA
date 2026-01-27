@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Register - AZURA</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <!-- Google Sign-In JavaScript Library -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <!-- Load Google Client ID from config endpoint -->
+  <script>
+    (async function() {
+      try {
+        const response = await fetch('/.netlify/functions/auth-config');
+        const config = await response.json();
+        if (config.googleClientId) {
+          window.GOOGLE_CLIENT_ID = config.googleClientId;
+        }
+      } catch (error) {
+        console.warn('[AUTH] Failed to load Google Client ID:', error);
+      }
+    })();
+  </script>
+</head>
+<body data-page="register">
+  <div class="auth">
+    <img src="assets/backgrounds/auth-bg.jpg" alt="" class="auth__background" onerror="this.style.display='none'">
+    <div class="auth__overlay"></div>
+    
+    <!-- Back button - always visible -->
+    <button class="auth__back-btn" onclick="window.location.href='index.html'" aria-label="Back">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+    
+    <div class="auth__container">
+      <div class="auth__card">
+        <div class="auth__header">
+          <div class="auth__logo">AZURA</div>
+          <h1 class="auth__title">Create Account</h1>
+          <p class="auth__subtitle">Join AZURA to start reading</p>
+        </div>
+
+        <form class="auth__form" id="register-form">
+          <!-- Option A: Google Sign-In (Optional) -->
+          <button id="google-signin-btn" class="auth__google-btn" type="button">
+            <svg class="auth__google-icon" viewBox="0 0 24 24" width="20" height="20">
+              <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            <span>Continue with Google</span>
+          </button>
+          
+          <div class="auth__divider">
+            <span>yoki</span>
+          </div>
+          
+          <!-- Option B: Manual Registration -->
+          <div class="auth__manual-form">
+            <div class="auth__field">
+              <input type="text" id="register-username" class="auth__input" placeholder="Username" required>
+            </div>
+            <div class="auth__field">
+              <input type="email" id="register-email" class="auth__input" placeholder="Email" required>
+            </div>
+            <div class="auth__field">
+              <input type="password" id="register-password" class="auth__input" placeholder="Password" required>
+            </div>
+            <button type="submit" class="auth__button auth__button--manual">Ro'yxatdan o'tish</button>
+          </div>
+          
+          <div id="auth-message" class="auth__message"></div>
+        </form>
+
+        <div class="auth__footer">
+          Already have an account?
+          <a href="auth.html" class="auth__footer-link">Sign in</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

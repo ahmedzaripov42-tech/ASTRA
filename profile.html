@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Profil - AZURA</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+</head>
+<body data-page="profile">
+  <div class="profile-page">
+    <!-- Back Button -->
+    <button class="profile-back-btn" onclick="window.location.href='index.html'" aria-label="Back">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+
+    <!-- Profile Header -->
+    <div class="profile-header">
+      <div class="profile-avatar-large">
+        <img id="profile-avatar-img" src="assets/avatars/avatar-male.png" alt="Profile Avatar" />
+      </div>
+      <h1 id="profile-username" class="profile-username">Foydalanuvchi</h1>
+      <p id="profile-email" class="profile-email">email@example.com</p>
+      
+      <!-- Profile Stats -->
+      <div class="profile-stats">
+        <div class="profile-stat-item">
+          <div class="profile-stat-value" id="profile-stat-read">0</div>
+          <div class="profile-stat-label">O'qilgan</div>
+        </div>
+        <div class="profile-stat-item">
+          <div class="profile-stat-value" id="profile-stat-comments">0</div>
+          <div class="profile-stat-label">Izohlar</div>
+        </div>
+        <div class="profile-stat-item">
+          <div class="profile-stat-value" id="profile-stat-likes">0</div>
+          <div class="profile-stat-label">Layklar</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Profile Content -->
+    <main class="profile-content">
+      <!-- Account Management Section -->
+      <section class="profile-section">
+        <button class="profile-action-btn" id="account-management-btn">
+          <svg class="profile-action-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 12m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0"></path>
+            <path d="M12 1v6m0 6v6m9-9h-6m-6 0H3m15.364 6.364l-4.243-4.243m-4.242-4.242l-4.243 4.243m4.242 4.242l4.243-4.243"></path>
+          </svg>
+          <span>Hisobni boshqarish</span>
+          <svg class="profile-action-arrow" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6"></polyline>
+          </svg>
+        </button>
+        <div id="profile-message" class="profile-message" style="display: none;"></div>
+      </section>
+      
+      <!-- My Comments Section -->
+      <section class="profile-section">
+        <h2 class="profile-section-title">Mening izohlarim</h2>
+        <div id="profile-comments-list" class="profile-list-placeholder">
+          <svg class="profile-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <p class="profile-placeholder-text">Hozircha izohlar yo'q</p>
+          <p class="profile-placeholder-subtext">Birinchi izohingizni yozing!</p>
+        </div>
+      </section>
+      
+      <!-- Liked Comments Section -->
+      <section class="profile-section">
+        <h2 class="profile-section-title">Layk qilingan izohlar</h2>
+        <div id="profile-liked-comments-list" class="profile-list-placeholder">
+          <svg class="profile-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <p class="profile-placeholder-text">Hozircha layklar yo'q</p>
+          <p class="profile-placeholder-subtext">Qiziqarli izohlarni layk qiling!</p>
+        </div>
+      </section>
+
+      <!-- Reading Lists Section -->
+      <section class="profile-section">
+        <h2 class="profile-section-title">O'qiladigan manhwalar</h2>
+        <div class="profile-list-placeholder">
+          <svg class="profile-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+            <line x1="8" y1="7" x2="16" y2="7"></line>
+            <line x1="8" y1="12" x2="16" y2="12"></line>
+            <line x1="8" y1="17" x2="12" y2="17"></line>
+          </svg>
+          <p class="profile-placeholder-text">Hozircha bo'sh</p>
+          <p class="profile-placeholder-subtext">Sevimli manhwalaringizni saqlash uchun ro'yxatga qo'shing</p>
+        </div>
+      </section>
+
+      <!-- Currently Reading Section -->
+      <section class="profile-section">
+        <h2 class="profile-section-title">Hozir o'qiyotgan</h2>
+        <div class="profile-list-placeholder">
+          <svg class="profile-placeholder-icon" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path>
+          </svg>
+          <p class="profile-placeholder-text">Hozircha o'qilmoqda bo'lgan manhwa yo'q</p>
+          <p class="profile-placeholder-subtext">Manhwa o'qishni boshlaganingizda bu yerda ko'rinadi</p>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Logout Section - AT THE VERY BOTTOM -->
+    <section class="profile-section profile-section-last profile-logout-section">
+      <button class="profile-logout-btn" id="profile-logout-btn">
+        <svg class="profile-logout-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16 17 21 12 16 7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+        <span>Chiqish</span>
+      </button>
+    </section>
+  </div>
+
+  <!-- Edit Profile Modal -->
+  <div id="edit-profile-modal" class="edit-profile-modal" style="display: none;">
+    <div class="edit-profile-overlay"></div>
+    <div class="edit-profile-content">
+      <div class="edit-profile-header">
+        <h2 class="edit-profile-title">Hisobni boshqarish</h2>
+        <button class="edit-profile-close" id="edit-profile-close" aria-label="Close">×</button>
+      </div>
+      
+      <div class="edit-profile-body">
+        <!-- Avatar Upload -->
+        <div class="edit-profile-field">
+          <label class="edit-profile-label">Avatar</label>
+          <div class="edit-profile-avatar-upload">
+            <div class="edit-profile-avatar-preview" id="edit-profile-avatar-preview">
+              <img id="edit-profile-avatar-img" src="assets/avatars/avatar-male.png" alt="Avatar Preview" />
+            </div>
+            <input type="file" id="edit-profile-avatar-input" accept="image/*" style="display: none;" />
+            <button type="button" class="edit-profile-avatar-btn" id="edit-profile-avatar-btn">Rasm yuklash</button>
+          </div>
+        </div>
+        
+        <!-- Nickname -->
+        <div class="edit-profile-field">
+          <label class="edit-profile-label" for="edit-profile-nickname">Ism (emoji qo'shish mumkin)</label>
+          <input type="text" id="edit-profile-nickname" class="edit-profile-input" placeholder="Ismingizni kiriting..." maxlength="30" />
+        </div>
+        
+        <!-- Bio -->
+        <div class="edit-profile-field">
+          <label class="edit-profile-label" for="edit-profile-bio">Bio / Status</label>
+          <textarea id="edit-profile-bio" class="edit-profile-textarea" placeholder="Qisqa bio yoki status..." rows="3" maxlength="150"></textarea>
+        </div>
+      </div>
+      
+      <div class="edit-profile-footer">
+        <button class="edit-profile-btn edit-profile-btn-cancel" id="edit-profile-cancel">Bekor qilish</button>
+        <button class="edit-profile-btn edit-profile-btn-save" id="edit-profile-save">Saqlash</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

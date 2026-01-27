@@ -1,0 +1,52 @@
+[
+  {
+    "chapter": 1,
+    "title": "Rebirth",
+    "date": "2024-01-12",
+    "images": [
+      "assets/chapters/tbate/ch1-1.jpg",
+      "assets/chapters/tbate/ch1-2.jpg",
+      "assets/chapters/tbate/ch1-3.jpg"
+    ]
+  },
+  {
+    "chapter": 2,
+    "title": "A New World",
+    "date": "2024-01-19",
+    "images": [
+      "assets/chapters/tbate/ch2-1.jpg",
+      "assets/chapters/tbate/ch2-2.jpg",
+      "assets/chapters/tbate/ch2-3.jpg"
+    ]
+  },
+  {
+    "chapter": 3,
+    "title": "Mana Core",
+    "date": "2024-01-26",
+    "images": [
+      "assets/chapters/tbate/ch3-1.jpg",
+      "assets/chapters/tbate/ch3-2.jpg",
+      "assets/chapters/tbate/ch3-3.jpg"
+    ]
+  },
+  {
+    "chapter": 4,
+    "title": "Training Begins",
+    "date": "2024-02-02",
+    "images": [
+      "assets/chapters/tbate/ch4-1.jpg",
+      "assets/chapters/tbate/ch4-2.jpg",
+      "assets/chapters/tbate/ch4-3.jpg"
+    ]
+  },
+  {
+    "chapter": 5,
+    "title": "First Spell",
+    "date": "2024-02-09",
+    "images": [
+      "assets/chapters/tbate/ch5-1.jpg",
+      "assets/chapters/tbate/ch5-2.jpg",
+      "assets/chapters/tbate/ch5-3.jpg"
+    ]
+  }
+]

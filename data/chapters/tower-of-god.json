@@ -1,0 +1,52 @@
+[
+  {
+    "chapter": 1,
+    "title": "The Tower",
+    "date": "2024-01-10",
+    "images": [
+      "assets/chapters/tower-of-god/ch1-1.jpg",
+      "assets/chapters/tower-of-god/ch1-2.jpg",
+      "assets/chapters/tower-of-god/ch1-3.jpg"
+    ]
+  },
+  {
+    "chapter": 2,
+    "title": "The First Test",
+    "date": "2024-01-17",
+    "images": [
+      "assets/chapters/tower-of-god/ch2-1.jpg",
+      "assets/chapters/tower-of-god/ch2-2.jpg",
+      "assets/chapters/tower-of-god/ch2-3.jpg"
+    ]
+  },
+  {
+    "chapter": 3,
+    "title": "The Crown Game",
+    "date": "2024-01-24",
+    "images": [
+      "assets/chapters/tower-of-god/ch3-1.jpg",
+      "assets/chapters/tower-of-god/ch3-2.jpg",
+      "assets/chapters/tower-of-god/ch3-3.jpg"
+    ]
+  },
+  {
+    "chapter": 4,
+    "title": "Yuri Jahad",
+    "date": "2024-01-31",
+    "images": [
+      "assets/chapters/tower-of-god/ch4-1.jpg",
+      "assets/chapters/tower-of-god/ch4-2.jpg",
+      "assets/chapters/tower-of-god/ch4-3.jpg"
+    ]
+  },
+  {
+    "chapter": 5,
+    "title": "The Second Floor",
+    "date": "2024-02-07",
+    "images": [
+      "assets/chapters/tower-of-god/ch5-1.jpg",
+      "assets/chapters/tower-of-god/ch5-2.jpg",
+      "assets/chapters/tower-of-god/ch5-3.jpg"
+    ]
+  }
+]
