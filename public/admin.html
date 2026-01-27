@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manhwa Admin</title>
+    <meta name="description" content="Admin panel for managing manhwa data." />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand" id="brandText">Manhwa Admin</div>
+      <div class="lang-switch">
+        <button class="lang-btn" data-lang="uz">UZ</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+      </div>
+    </header>
+
+    <main class="admin">
+      <aside class="admin-sidebar">
+        <h2 id="adminLibraryTitle">Library</h2>
+        <div id="adminList" class="admin-list"></div>
+      </aside>
+      <section class="admin-content">
+        <div class="admin-card">
+          <h2 id="adminDetailsTitle">Details</h2>
+          <div id="adminDetails" class="meta">Select a manhwa.</div>
+        </div>
+        <div class="admin-card">
+          <h2 id="adminChaptersTitle">Chapters</h2>
+          <div id="adminChapters" class="chapter-list"></div>
+        </div>
+        <div class="admin-card">
+          <h2 id="adminPagesTitle">Pages</h2>
+          <div id="adminPages" class="page-grid"></div>
+          <div class="admin-actions">
+            <button id="savePagesBtn" class="chapter-nav-btn">Save Page Order</button>
+          </div>
+        </div>
+        <div class="admin-card">
+          <h2 id="adminUploadTitle">Upload</h2>
+          <input id="uploadInput" class="search" type="file" multiple />
+          <div id="uploadPreview" class="meta">Select files to preview.</div>
+          <div class="admin-actions">
+            <button id="uploadConfirmBtn" class="chapter-nav-btn">Send to Bot</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <script src="/lang.js"></script>
+    <script src="/admin.js"></script>
+  </body>
+</html>
+

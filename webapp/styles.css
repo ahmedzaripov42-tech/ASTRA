@@ -1,0 +1,184 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+body {
+  background: #0b0f1a;
+  color: #e3e7ff;
+}
+
+.app {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 260px;
+  background: rgba(16, 20, 36, 0.9);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 24px;
+}
+
+.brand {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  margin-bottom: 24px;
+}
+
+.section-title {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  opacity: 0.7;
+  margin-bottom: 12px;
+}
+
+.list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.list-item {
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.list-item.active,
+.list-item:hover {
+  background: rgba(93, 115, 255, 0.2);
+  box-shadow: 0 0 16px rgba(80, 110, 255, 0.25);
+}
+
+.content {
+  flex: 1;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 12px;
+  border: none;
+  background: #5d73ff;
+  color: white;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+}
+
+.btn.ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.card {
+  background: rgba(16, 20, 36, 0.7);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(12px);
+}
+
+.empty {
+  min-height: 120px;
+}
+
+.empty-state {
+  opacity: 0.7;
+  font-size: 14px;
+}
+
+.chapter-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.chapter-chip {
+  padding: 8px 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.05);
+  cursor: pointer;
+}
+
+.chapter-chip.active {
+  background: rgba(93, 115, 255, 0.25);
+}
+
+.page-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.page-card {
+  background: rgba(0, 0, 0, 0.4);
+  padding: 8px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.page-card img {
+  width: 100%;
+  border-radius: 8px;
+}
+
+.page-actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.page-actions button {
+  flex: 1;
+  padding: 6px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(93, 115, 255, 0.2);
+  color: #e3e7ff;
+  cursor: pointer;
+}
+
+.ai-review {
+  font-size: 14px;
+  opacity: 0.85;
+}
+
+@media (max-width: 900px) {
+  .sidebar {
+    display: none;
+  }
+}
+

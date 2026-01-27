@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manhwa Admin</title>
+    <link rel="stylesheet" href="/app/styles.css" />
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <div class="brand">Manhwa CMS</div>
+        <div class="section">
+          <div class="section-title">Library</div>
+          <ul id="manhwaList" class="list"></ul>
+        </div>
+      </aside>
+      <main class="content">
+        <header class="topbar">
+          <div class="title">AI Admin Panel</div>
+          <div class="actions">
+            <button id="refreshBtn" class="btn ghost">Refresh</button>
+            <button id="saveBtn" class="btn">Save Changes</button>
+          </div>
+        </header>
+        <section id="details" class="card empty">
+          <div class="empty-state">
+            Select a manhwa to start managing chapters.
+          </div>
+        </section>
+        <section id="chapters" class="card">
+          <div class="section-title">Chapters</div>
+          <div id="chapterList" class="chapter-list"></div>
+        </section>
+        <section id="pages" class="card">
+          <div class="section-title">Pages</div>
+          <div id="pageGrid" class="page-grid"></div>
+        </section>
+        <section class="card">
+          <div class="section-title">AI Review</div>
+          <div id="aiReview" class="ai-review">
+            Upload a file to preview analysis in the bot.
+          </div>
+        </section>
+      </main>
+    </div>
+    <script src="/app/app.js"></script>
+  </body>
+</html>
+

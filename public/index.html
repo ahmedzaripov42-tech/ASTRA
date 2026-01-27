@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manhwa Platform</title>
+    <meta name="description" content="Dark, minimal manhwa platform with a Webtoon-style reader." />
+    <meta property="og:title" content="Manhwa Platform" />
+    <meta property="og:description" content="Read manhwa chapters in a smooth vertical reader." />
+    <meta property="og:image" content="/og-cover.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand" id="brandText">Manhwa</div>
+      <div class="lang-switch">
+        <button class="lang-btn" data-lang="uz">UZ</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+      </div>
+    </header>
+
+    <main class="container">
+      <section class="controls">
+        <input id="searchInput" class="search" type="search" placeholder="Search..." />
+        <div class="filters">
+          <label class="filter-label" for="filterSelect" id="filterLabel">Filter</label>
+          <select id="filterSelect" class="filter-select">
+            <option value="all" data-i18n="filter_all">All</option>
+            <option value="chapters_10" data-i18n="filter_10">10+ chapters</option>
+            <option value="chapters_30" data-i18n="filter_30">30+ chapters</option>
+            <option value="recent" data-i18n="filter_recent">Recently updated</option>
+          </select>
+          <label class="filter-label" for="sortSelect" id="sortLabel">Sort</label>
+          <select id="sortSelect" class="filter-select">
+            <option value="latest" data-i18n="sort_latest">Latest updated</option>
+            <option value="alpha" data-i18n="sort_alpha">Alphabetical</option>
+          </select>
+        </div>
+      </section>
+      <section>
+        <h2 id="libraryTitle">Library</h2>
+        <div id="manhwaGrid" class="grid"></div>
+      </section>
+
+      <section>
+        <h2 id="chaptersTitle">Chapters</h2>
+        <div id="chapterList" class="chapter-list"></div>
+      </section>
+    </main>
+
+    <script src="/lang.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
+

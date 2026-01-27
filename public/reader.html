@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="uz">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Manhwa Reader</title>
+    <meta name="description" content="Webtoon-style reader with smooth infinite scroll." />
+    <meta property="og:title" content="Manhwa Reader" />
+    <meta property="og:description" content="Read chapters in a vertical scrolling experience." />
+    <meta property="og:image" content="/og-cover.png" />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <a href="/index.html" class="back-link" id="backLink">← Back</a>
+      <div class="lang-switch">
+        <button class="lang-btn" data-lang="uz">UZ</button>
+        <button class="lang-btn" data-lang="ru">RU</button>
+      </div>
+    </header>
+
+    <main class="reader">
+      <div class="reader-header">
+        <h1 id="readerTitle">Loading...</h1>
+        <div id="readerMeta" class="meta"></div>
+      </div>
+      <div class="chapter-nav">
+        <button id="prevChapter" class="chapter-nav-btn">◀ Prev</button>
+        <button id="chapterListBtn" class="chapter-nav-btn">Back to Chapters</button>
+        <button id="nextChapter" class="chapter-nav-btn">Next ▶</button>
+      </div>
+      <div id="pages" class="pages"></div>
+    </main>
+
+    <script src="/lang.js"></script>
+    <script src="/app.js"></script>
+  </body>
+</html>
+
