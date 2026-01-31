@@ -9,6 +9,10 @@
 
 let manhwasData = [];
 let currentSliderIndex = 0;
+const MANHWA_URL = "/manhwa.json";
+function getManhwaUrl() {
+    return `${MANHWA_URL}?t=${Date.now()}`;
+}
 // sliderInterval removed - auto-scroll disabled for now
 // let sliderInterval = null;
 
@@ -404,8 +408,7 @@ async function loadData() {
     console.log('[DATA] ========== loadData() CHAQIRILDI ==========');
     console.log('[DATA] Current manhwasData.length:', manhwasData.length);
     
-    // CRITICAL: Skip if data already loaded (to avoid unnecessary fetch)
-    // But ALWAYS check if page needs re-render
+    // If data already loaded, still re-render while fetching fresh data
     const wasDataLoaded = manhwasData.length > 0;
     if (wasDataLoaded) {
         console.log('[DATA] Data allaqachon yuklangan, lekin render qilishni tekshiramiz...');
@@ -440,14 +443,13 @@ async function loadData() {
                 }
             }
         }
-        // Return early if data already loaded (don't fetch again)
-        return Promise.resolve();
     }
     
+    const fetchUrl = getManhwaUrl();
     try {
-        console.log('[DATA] Fetching data/manhwas.json...');
-        const response = await fetch('data/manhwas.json', {
-            cache: 'no-cache',
+        console.log(`[DATA] Fetching ${fetchUrl}...`);
+        const response = await fetch(fetchUrl, {
+            cache: 'no-store',
             headers: {
                 'Accept': 'application/json'
             }
@@ -526,7 +528,7 @@ async function loadData() {
         console.error('[ERROR] ❌ Data yuklash xatosi:', error);
         console.error('[ERROR] Error details:', error.message, error.stack);
         console.error('[ERROR] Error type:', error.name);
-        console.error('[ERROR] Fetch URL attempted: data/manhwas.json');
+        console.error('[ERROR] Fetch URL attempted:', fetchUrl);
         manhwasData = [];
         
         // CRITICAL: Data yuklanmagan bo'lsa ham, kanallar render qilish (hardcoded data)
@@ -5617,6 +5619,29 @@ if (typeof window !== 'undefined') {
         manhwasData: typeof window.manhwasData
     });
 }
+
+let lastDataRefreshAt = 0;
+function refreshManhwaData(reason = '') {
+    const now = Date.now();
+    if (now - lastDataRefreshAt < 2000) {
+        return;
+    }
+    lastDataRefreshAt = now;
+    if (typeof loadData === 'function') {
+        console.log('[DATA] Refresh trigger:', reason);
+        loadData();
+    }
+}
+
+document.addEventListener('visibilitychange', () => {
+    if (!document.hidden) {
+        refreshManhwaData('visibility');
+    }
+});
+
+window.addEventListener('focus', () => {
+    refreshManhwaData('focus');
+});
 
 // ============================================
 // AUTH / REGISTER PAGES - OPTIONAL UI ONLY

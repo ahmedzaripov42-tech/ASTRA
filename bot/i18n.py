@@ -2,14 +2,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Dict
+from typing import Callable, Dict
+
+from aiogram.types import CallbackQuery, Message
 
 from .config import DATA_DIR
-from .roles import is_owner
+from .roles import is_blocked, is_owner
 
 
 USERS_PATH = DATA_DIR / "users.json"
 DEFAULT_LANG = "uz"
+ACCESS_BYPASS = True
 
 STRINGS: Dict[str, Dict[str, str]] = {
     "welcome": {
@@ -29,7 +32,7 @@ STRINGS: Dict[str, Dict[str, str]] = {
         "ru": "Язык сохранен.",
     },
     "no_manhwa": {
-        "uz": "Manhwa topilmadi. Avval qo'shing.",
+        "uz": "Manhwa topilmadi. Avval platformaga manhwa qo‘shing.",
         "ru": "Манхва не найдена. Сначала добавьте.",
     },
     "flow_canceled": {
@@ -130,4 +133,22 @@ def set_user_lang(user_id: int, lang: str) -> None:
     data[str(user_id)] = lang
     with USERS_PATH.open("w", encoding="utf-8") as file:
         json.dump(data, file, ensure_ascii=False, indent=2)
+
+
+async def ensure_access(event: Message | CallbackQuery, check: Callable[[int], bool], deny_message: str | None = None) -> bool:
+    if ACCESS_BYPASS:
+        return True
+    user = event.from_user
+    if not user:
+        return False
+    if is_blocked(user.id) or not check(user.id):
+        lang = get_user_lang(user.id)
+        text = deny_message or t("access_denied", lang)
+        if isinstance(event, CallbackQuery):
+            await event.message.answer(text)
+            await event.answer()
+        else:
+            await event.answer(text)
+        return False
+    return True
 

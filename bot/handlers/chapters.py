@@ -1,16 +1,18 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from pathlib import Path
 
 from aiogram import F, Router
-from aiogram.filters import Command
+from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 from ..config import LOGS_PATH, MANHWA_PATH, PUBLIC_DIR, SETTINGS_PATH, UPLOADS_DIR
 from ..flow_registry import track, untrack
-from ..i18n import get_user_lang, menu_labels, t
+from ..i18n import ensure_access, get_user_lang, menu_labels, menu_labels_all, t
 from ..keyboards import (
     inline_cancel_back_kb,
     inline_chapter_kb,
@@ -21,7 +23,7 @@ from ..keyboards import (
     main_menu_kb,
 )
 from ..prompt_guard import mark_prompt, reset_prompt
-from ..roles import can_upload, is_blocked
+from ..roles import can_upload
 from server import processor
 from server.decision_engine import analyze_chapter_conflict
 
@@ -33,44 +35,100 @@ class UploadChapter(StatesGroup):
     chapter_number = State()
     upload = State()
     review = State()
+    delete_confirm = State()
 
 
 @router.message(Command("upload_chapter"))
-@router.message(F.text.in_(menu_labels("upload")))
+@router.message(StateFilter("*"), F.text.in_(menu_labels("upload")))
 async def upload_start(message: Message, state: FSMContext) -> None:
-    if is_blocked(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
-        return
-    if not can_upload(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
+    if not await ensure_access(message, can_upload):
         return
     await state.clear()
     track(message.chat.id, message.from_user.id)
-    manhwas = processor.get_manhwa_list(MANHWA_PATH)
+    manhwas = _load_public_manhwa()
     if not manhwas:
         lang = get_user_lang(message.from_user.id)
-        await message.answer(t("no_manhwa", lang))
+        await message.answer(
+            t("no_manhwa", lang),
+            reply_markup=inline_cancel_back_kb(back_data="flow:cancel", lang=lang),
+        )
         untrack(message.chat.id, message.from_user.id)
         return
+    await state.update_data(manhwa_id_map=_build_id_map(manhwas))
     await state.set_state(UploadChapter.manhwa_id)
     lang = get_user_lang(message.from_user.id)
     await message.answer(
         "Select a manhwa to upload:",
-        reply_markup=inline_manhwa_kb(manhwas, lang=lang),
+        reply_markup=inline_manhwa_kb(
+            manhwas,
+            lang=lang,
+            callback_prefix="upload:manhwa:",
+            use_index=True,
+            page=0,
+            nav_prefix="upload:manhwa:page:",
+        ),
     )
 
 
-@router.callback_query(F.data.startswith("upload:manhwa:"))
+@router.callback_query(
+    UploadChapter.manhwa_id,
+    F.data.startswith("upload:manhwa:") & ~F.data.startswith("upload:manhwa:page:"),
+)
 async def upload_select_manhwa(callback: CallbackQuery, state: FSMContext) -> None:
-    if await state.get_state() != UploadChapter.manhwa_id.state:
+    if not await ensure_access(callback, can_upload):
+        return
+    raw_id = callback.data.split("upload:manhwa:")[-1]
+    data = await state.get_data()
+    manhwa_id = _resolve_manhwa_id(raw_id, data.get("manhwa_id_map"))
+    if not manhwa_id:
+        await state.clear()
+        untrack(callback.message.chat.id, callback.from_user.id)
+        reset_prompt(callback.from_user.id)
+        await callback.message.answer(
+            "Invalid manhwa selection.",
+            reply_markup=main_menu_kb(get_user_lang(callback.from_user.id)),
+        )
         await callback.answer()
         return
-    manhwa_id = callback.data.split("upload:manhwa:")[-1]
     await state.update_data(manhwa_id=manhwa_id)
     await state.set_state(UploadChapter.chapter_number)
     await _prompt_chapter(callback.message, manhwa_id)
+    await callback.answer()
+
+
+@router.callback_query(UploadChapter.manhwa_id, F.data.startswith("upload:manhwa:page:"))
+async def upload_manhwa_page(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
+    raw_page = callback.data.split("upload:manhwa:page:")[-1]
+    try:
+        page = int(raw_page)
+    except ValueError:
+        await callback.answer()
+        return
+    manhwas = _load_public_manhwa()
+    if not manhwas:
+        await state.clear()
+        untrack(callback.message.chat.id, callback.from_user.id)
+        reset_prompt(callback.from_user.id)
+        await callback.message.answer(
+            t("no_manhwa", get_user_lang(callback.from_user.id)),
+            reply_markup=main_menu_kb(get_user_lang(callback.from_user.id)),
+        )
+        await callback.answer()
+        return
+    await state.update_data(manhwa_id_map=_build_id_map(manhwas))
+    lang = get_user_lang(callback.from_user.id)
+    await callback.message.edit_reply_markup(
+        reply_markup=inline_manhwa_kb(
+            manhwas,
+            lang=lang,
+            callback_prefix="upload:manhwa:",
+            use_index=True,
+            page=page,
+            nav_prefix="upload:manhwa:page:",
+        )
+    )
     await callback.answer()
 
 
@@ -89,19 +147,43 @@ async def _prompt_chapter(message: Message, manhwa_id: str) -> None:
     )
 
 
-@router.callback_query(F.data == "upload:back:manhwa")
+@router.callback_query(UploadChapter.chapter_number, F.data == "upload:back:manhwa")
 async def upload_back_manhwa(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
+    await state.clear()
+    reset_prompt(callback.from_user.id)
     manhwas = processor.get_manhwa_list(MANHWA_PATH)
+    await state.update_data(manhwa_id_map=_build_id_map(manhwas))
     await state.set_state(UploadChapter.manhwa_id)
     lang = get_user_lang(callback.from_user.id)
-    await callback.message.answer("Select a manhwa to upload:", reply_markup=inline_manhwa_kb(manhwas, lang=lang))
+    if not manhwas:
+        await callback.message.answer(
+            t("no_manhwa", lang),
+            reply_markup=inline_cancel_back_kb(back_data="flow:cancel", lang=lang),
+        )
+        await callback.answer()
+        return
+    await callback.message.answer(
+        "Select a manhwa to upload:",
+        reply_markup=inline_manhwa_kb(
+            manhwas,
+            lang=lang,
+            callback_prefix="upload:manhwa:",
+            use_index=True,
+            page=0,
+            nav_prefix="upload:manhwa:page:",
+        ),
+    )
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("upload:chapter:"))
+@router.callback_query(
+    UploadChapter.chapter_number,
+    F.data.startswith("upload:chapter:replace:") | F.data.startswith("upload:chapter:new:"),
+)
 async def upload_select_chapter(callback: CallbackQuery, state: FSMContext) -> None:
-    if await state.get_state() != UploadChapter.chapter_number.state:
-        await callback.answer()
+    if not await ensure_access(callback, can_upload):
         return
     _, _, action, chapter = callback.data.split(":", 3)
     overwrite = action == "replace"
@@ -116,19 +198,58 @@ async def upload_select_chapter(callback: CallbackQuery, state: FSMContext) -> N
     await callback.answer()
 
 
-@router.callback_query(F.data == "upload:back:chapter")
+@router.callback_query(UploadChapter.chapter_number, F.data.startswith("upload:chapter:delete:"))
+async def upload_delete_prompt(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
+    chapter = callback.data.split("upload:chapter:delete:")[-1]
+    await state.update_data(chapter_number=chapter)
+    await state.set_state(UploadChapter.delete_confirm)
+    lang = get_user_lang(callback.from_user.id)
+    await callback.message.answer(
+        f"Delete chapter {chapter}? This cannot be undone.",
+        reply_markup=inline_confirm_kb("upload:delete:confirm", back_data="upload:back:chapter", lang=lang),
+    )
+    await callback.answer()
+
+
+@router.callback_query(
+    StateFilter(UploadChapter.upload, UploadChapter.review, UploadChapter.delete_confirm),
+    F.data == "upload:back:chapter",
+)
 async def upload_back_chapter(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
     data = await state.get_data()
     manhwa_id = data.get("manhwa_id")
+    await state.clear()
+    reset_prompt(callback.from_user.id)
     if manhwa_id:
+        await state.update_data(manhwa_id=manhwa_id)
         await state.set_state(UploadChapter.chapter_number)
         await _prompt_chapter(callback.message, manhwa_id)
+    else:
+        await callback.message.answer(
+            "No manhwa selected.",
+            reply_markup=main_menu_kb(get_user_lang(callback.from_user.id)),
+        )
     await callback.answer()
 
 
 @router.message(UploadChapter.upload, F.document | F.photo)
 async def upload_file(message: Message, state: FSMContext) -> None:
+    if not await ensure_access(message, can_upload):
+        return
     data = await state.get_data()
+    if not data.get("manhwa_id") or not data.get("chapter_number"):
+        await state.clear()
+        untrack(message.chat.id, message.from_user.id)
+        reset_prompt(message.from_user.id)
+        await message.answer(
+            "Upload session expired. Returning to main menu.",
+            reply_markup=main_menu_kb(get_user_lang(message.from_user.id)),
+        )
+        return
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
     local_path = None
 
@@ -142,6 +263,7 @@ async def upload_file(message: Message, state: FSMContext) -> None:
         await message.bot.download_file(file.file_path, destination=local_path)
 
     try:
+        status_message = await message.answer("Analyzing file")
         analysis_result = processor.analyze_upload(local_path)
         analysis = analysis_result["analysis"]
         suggested_mode = analysis.suggested_mode
@@ -152,29 +274,39 @@ async def upload_file(message: Message, state: FSMContext) -> None:
         await state.set_state(UploadChapter.review)
         summary = _format_analysis(analysis)
         lang = get_user_lang(message.from_user.id)
+        await status_message.edit_text("Analysis complete")
         await message.answer(
             summary,
             reply_markup=inline_confirm_kb("upload:confirm", "upload:change", "upload:back:chapter", lang=lang),
         )
     except Exception as exc:  # noqa: BLE001
+        logging.exception("Upload analysis failed")
+        await state.clear()
+        untrack(message.chat.id, message.from_user.id)
+        reset_prompt(message.from_user.id)
         lang = get_user_lang(message.from_user.id)
         await message.answer(
             f"Upload failed: {exc}",
-            reply_markup=inline_cancel_back_kb("upload:back:chapter", lang=lang),
+            reply_markup=main_menu_kb(lang),
         )
 
 
-@router.message(UploadChapter.upload)
-async def upload_invalid(message: Message) -> None:
+@router.message(UploadChapter.upload, F.text & ~F.text.in_(menu_labels_all()))
+async def upload_invalid(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    untrack(message.chat.id, message.from_user.id)
+    reset_prompt(message.from_user.id)
     lang = get_user_lang(message.from_user.id)
     await message.answer(
         "Please send a file (PDF/ZIP/RAR/IMG).",
-        reply_markup=inline_cancel_back_kb("upload:back:chapter", lang=lang),
+        reply_markup=main_menu_kb(lang),
     )
 
 
-@router.callback_query(F.data == "upload:change")
+@router.callback_query(UploadChapter.review, F.data == "upload:change")
 async def upload_change_settings(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
     lang = get_user_lang(callback.from_user.id)
     await callback.message.answer(
         "Select quality mode for this upload:", reply_markup=inline_quality_choice_kb(lang=lang)
@@ -182,8 +314,10 @@ async def upload_change_settings(callback: CallbackQuery, state: FSMContext) -> 
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("upload:quality:"))
+@router.callback_query(UploadChapter.review, F.data.startswith("upload:quality:"))
 async def upload_quality_select(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
     mode = callback.data.split("upload:quality:")[-1]
     await state.update_data(quality_override=mode)
     lang = get_user_lang(callback.from_user.id)
@@ -194,63 +328,183 @@ async def upload_quality_select(callback: CallbackQuery, state: FSMContext) -> N
     await callback.answer()
 
 
-@router.callback_query(F.data == "upload:confirm")
+@router.callback_query(UploadChapter.review, F.data == "upload:confirm")
 async def upload_confirm(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
     data = await state.get_data()
+    manhwa_id = data.get("manhwa_id")
+    chapter_number = data.get("chapter_number")
+    upload_path = data.get("upload_path")
+    if not manhwa_id or not chapter_number or not upload_path:
+        await state.clear()
+        untrack(callback.message.chat.id, callback.from_user.id)
+        reset_prompt(callback.from_user.id)
+        await callback.message.answer(
+            "Upload session expired. Returning to main menu.",
+            reply_markup=main_menu_kb(get_user_lang(callback.from_user.id)),
+        )
+        await callback.answer()
+        return
     try:
-        existing = processor.get_chapter_numbers(MANHWA_PATH, data["manhwa_id"])
-        conflict = analyze_chapter_conflict(existing, data["chapter_number"])
+        existing = processor.get_chapter_numbers(MANHWA_PATH, manhwa_id)
+        conflict = analyze_chapter_conflict(existing, chapter_number)
         if conflict.exists and not data.get("overwrite", False):
             await callback.message.answer(
-                f"Chapter {data['chapter_number']} already exists. What should I do?",
+                f"Chapter {chapter_number} already exists. What should I do?",
                 reply_markup=inline_conflict_kb(conflict.suggested_new, lang=get_user_lang(callback.from_user.id)),
             )
             await state.update_data(conflict_suggested=conflict.suggested_new)
             await callback.answer()
             return
+        progress_message = await callback.message.answer("Converting pages...")
+        loop = asyncio.get_running_loop()
+        last_text = {"value": ""}
+
+        def progress_callback(stage: str, current: int | None = None, total: int | None = None) -> None:
+            if stage == "converting" and current is not None and total is not None:
+                text = f"Converting pages {current}/{total}"
+            else:
+                text = stage
+            if text == last_text["value"]:
+                return
+            last_text["value"] = text
+            asyncio.run_coroutine_threadsafe(progress_message.edit_text(text), loop)
+
         settings = processor.load_settings(SETTINGS_PATH)
-        result = processor.process_upload(
-            manhwa_id=data["manhwa_id"],
-            chapter_number=data["chapter_number"],
-            upload_path=Path(data["upload_path"]),
-            manhwa_path=MANHWA_PATH,
-            public_dir=PUBLIC_DIR,
-            settings=settings,
-            overwrite=data.get("overwrite", False),
-            quality_override=data.get("quality_override") or data.get("suggested_mode"),
+        result = await asyncio.to_thread(
+            processor.process_upload,
+            manhwa_id,
+            chapter_number,
+            Path(upload_path),
+            MANHWA_PATH,
+            PUBLIC_DIR,
+            settings,
+            data.get("overwrite", False),
+            data.get("quality_override") or data.get("suggested_mode"),
+            progress_callback,
+            False,
         )
+        await progress_message.edit_text("Deploying")
+        await asyncio.to_thread(processor.trigger_deploy)
         processor.log_action(
             user_id=callback.from_user.id,
-            action=f"Uploaded chapter {data['chapter_number']} - {data['manhwa_id']}",
+            action=f"Uploaded chapter {chapter_number} - {manhwa_id}",
             logs_path=LOGS_PATH,
         )
         await state.clear()
         reset_prompt(callback.from_user.id)
+        await state.update_data(manhwa_id=manhwa_id)
+        await state.set_state(UploadChapter.chapter_number)
         await callback.message.answer(
             f"Upload complete. Pages: {result['pages_count']}",
-            reply_markup=main_menu_kb(get_user_lang(callback.from_user.id)),
         )
-        untrack(callback.message.chat.id, callback.from_user.id)
+        await _prompt_chapter(callback.message, manhwa_id)
     except Exception as exc:  # noqa: BLE001
+        logging.exception("Upload confirm failed")
+        await state.clear()
+        untrack(callback.message.chat.id, callback.from_user.id)
+        reset_prompt(callback.from_user.id)
         lang = get_user_lang(callback.from_user.id)
         await callback.message.answer(
             f"Upload failed: {exc}",
-            reply_markup=inline_cancel_back_kb("upload:back:chapter", lang=lang),
+            reply_markup=main_menu_kb(lang),
         )
     await callback.answer()
 
 
-@router.message(UploadChapter.review)
+@router.callback_query(UploadChapter.delete_confirm, F.data == "upload:delete:confirm")
+async def upload_delete_confirm(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
+    data = await state.get_data()
+    manhwa_id = data.get("manhwa_id")
+    chapter_number = data.get("chapter_number")
+    if not manhwa_id or not chapter_number:
+        await state.clear()
+        untrack(callback.message.chat.id, callback.from_user.id)
+        reset_prompt(callback.from_user.id)
+        await callback.message.answer(
+            "No chapter selected.",
+            reply_markup=main_menu_kb(get_user_lang(callback.from_user.id)),
+        )
+        await callback.answer()
+        return
+    try:
+        processor.delete_chapter(MANHWA_PATH, PUBLIC_DIR, manhwa_id, chapter_number)
+        processor.log_action(
+            user_id=callback.from_user.id,
+            action=f"Deleted chapter {chapter_number} - {manhwa_id}",
+            logs_path=LOGS_PATH,
+        )
+        await state.clear()
+        untrack(callback.message.chat.id, callback.from_user.id)
+        reset_prompt(callback.from_user.id)
+        await callback.message.answer(
+            f"Chapter deleted: {chapter_number}",
+            reply_markup=main_menu_kb(get_user_lang(callback.from_user.id)),
+        )
+    except Exception:  # noqa: BLE001
+        logging.exception("Failed to delete chapter %s %s", manhwa_id, chapter_number)
+        await state.clear()
+        untrack(callback.message.chat.id, callback.from_user.id)
+        reset_prompt(callback.from_user.id)
+        await callback.message.answer(
+            "Failed to delete chapter.",
+            reply_markup=main_menu_kb(get_user_lang(callback.from_user.id)),
+        )
+    await callback.answer()
+
+
+@router.message(UploadChapter.review, F.text & ~F.text.in_(menu_labels_all()))
 async def upload_review_invalid(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    untrack(message.chat.id, message.from_user.id)
+    reset_prompt(message.from_user.id)
     lang = get_user_lang(message.from_user.id)
     await message.answer(
         "Please confirm, change settings, or cancel.",
-        reply_markup=inline_confirm_kb("upload:confirm", "upload:change", "upload:back:chapter", lang=lang),
+        reply_markup=main_menu_kb(lang),
     )
 
 
-@router.callback_query(F.data == "upload:conflict:replace")
+@router.message(
+    StateFilter(UploadChapter.manhwa_id, UploadChapter.chapter_number, UploadChapter.review, UploadChapter.delete_confirm),
+    ~F.text,
+)
+async def upload_invalid_non_text(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    untrack(message.chat.id, message.from_user.id)
+    reset_prompt(message.from_user.id)
+    lang = get_user_lang(message.from_user.id)
+    await message.answer("Invalid input. Returning to main menu.", reply_markup=main_menu_kb(lang))
+
+
+@router.message(
+    StateFilter(UploadChapter.manhwa_id, UploadChapter.chapter_number, UploadChapter.delete_confirm),
+    F.text & ~F.text.in_(menu_labels_all()),
+)
+async def upload_invalid_text_select(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    untrack(message.chat.id, message.from_user.id)
+    reset_prompt(message.from_user.id)
+    lang = get_user_lang(message.from_user.id)
+    await message.answer("Invalid input. Returning to main menu.", reply_markup=main_menu_kb(lang))
+
+
+@router.message(UploadChapter.upload, ~F.document & ~F.photo & ~F.text)
+async def upload_invalid_media(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    untrack(message.chat.id, message.from_user.id)
+    reset_prompt(message.from_user.id)
+    lang = get_user_lang(message.from_user.id)
+    await message.answer("Invalid file type. Returning to main menu.", reply_markup=main_menu_kb(lang))
+
+
+@router.callback_query(UploadChapter.review, F.data == "upload:conflict:replace")
 async def upload_conflict_replace(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
     await state.update_data(overwrite=True)
     lang = get_user_lang(callback.from_user.id)
     await callback.message.answer(
@@ -260,8 +514,10 @@ async def upload_conflict_replace(callback: CallbackQuery, state: FSMContext) ->
     await callback.answer()
 
 
-@router.callback_query(F.data.startswith("upload:conflict:new:"))
+@router.callback_query(UploadChapter.review, F.data.startswith("upload:conflict:new:"))
 async def upload_conflict_new(callback: CallbackQuery, state: FSMContext) -> None:
+    if not await ensure_access(callback, can_upload):
+        return
     new_number = callback.data.split("upload:conflict:new:")[-1]
     await state.update_data(chapter_number=new_number, overwrite=False)
     lang = get_user_lang(callback.from_user.id)
@@ -293,6 +549,22 @@ def _format_number(value: float) -> str:
     if value.is_integer():
         return str(int(value))
     return f"{value:.1f}".rstrip("0").rstrip(".")
+
+
+def _load_public_manhwa() -> list[dict]:
+    return processor.load_manhwa(MANHWA_PATH)
+
+
+def _build_id_map(manhwas: list[dict]) -> dict[str, str]:
+    return {str(idx): str(item.get("id", "")) for idx, item in enumerate(manhwas) if item.get("id")}
+
+
+def _resolve_manhwa_id(raw_id: str, id_map: dict | None) -> str | None:
+    if id_map and raw_id in id_map:
+        return id_map[raw_id]
+    if processor.get_manhwa_by_id(MANHWA_PATH, raw_id):
+        return raw_id
+    return None
 
 
 def _format_analysis(analysis) -> str:

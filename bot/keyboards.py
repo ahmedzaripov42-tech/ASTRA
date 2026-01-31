@@ -59,12 +59,38 @@ def inline_confirm_kb(
     return InlineKeyboardMarkup(inline_keyboard=[buttons])
 
 
-def inline_manhwa_kb(manhwas: list[dict], lang: str = "uz") -> InlineKeyboardMarkup:
+def inline_manhwa_kb(
+    manhwas: list[dict],
+    lang: str = "uz",
+    callback_prefix: str = "upload:manhwa:",
+    use_index: bool = False,
+    page: int = 0,
+    page_size: int = 30,
+    nav_prefix: str | None = None,
+) -> InlineKeyboardMarkup:
     rows = []
-    for item in manhwas:
+    total = len(manhwas)
+    total_pages = max(1, (total + page_size - 1) // page_size)
+    page = max(0, min(page, total_pages - 1))
+    start = page * page_size
+    end = start + page_size
+    for idx, item in enumerate(manhwas[start:end], start=start):
+        value = str(idx) if use_index else str(item.get("id") or idx)
         rows.append(
-            [InlineKeyboardButton(text=item["title"], callback_data=f"upload:manhwa:{item['id']}")]
+            [InlineKeyboardButton(text=item["title"], callback_data=f"{callback_prefix}{value}")]
         )
+    if total_pages > 1 and nav_prefix:
+        nav_row = []
+        if page > 0:
+            nav_row.append(
+                InlineKeyboardButton(text="⬅ Prev", callback_data=f"{nav_prefix}{page - 1}")
+            )
+        nav_row.append(InlineKeyboardButton(text=f"{page + 1}/{total_pages}", callback_data="noop"))
+        if page < total_pages - 1:
+            nav_row.append(
+                InlineKeyboardButton(text="Next ➡", callback_data=f"{nav_prefix}{page + 1}")
+            )
+        rows.append(nav_row)
     rows.append([InlineKeyboardButton(text=button_label("cancel", lang), callback_data="flow:cancel")])
     return InlineKeyboardMarkup(inline_keyboard=rows)
 
@@ -84,6 +110,14 @@ def inline_chapter_kb(
                     InlineKeyboardButton(
                         text=f"{button_label('replace', lang)} {chapter}",
                         callback_data=f"upload:chapter:replace:{chapter}",
+                    )
+                ]
+            )
+            rows.append(
+                [
+                    InlineKeyboardButton(
+                        text=f"🗑 Delete {chapter}",
+                        callback_data=f"upload:chapter:delete:{chapter}",
                     )
                 ]
             )

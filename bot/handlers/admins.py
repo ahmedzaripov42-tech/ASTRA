@@ -3,20 +3,15 @@ from __future__ import annotations
 from aiogram import F, Router
 from aiogram.types import Message
 
-from ..i18n import get_user_lang, menu_labels, t
-from ..roles import add_role, is_blocked, is_owner, remove_role
+from ..i18n import ensure_access, get_user_lang, menu_labels, t
+from ..roles import add_role, is_owner, remove_role
 
 router = Router()
 
 
 @router.message(F.text.in_(menu_labels("admins")))
 async def admin_menu(message: Message) -> None:
-    if is_blocked(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
-        return
-    if not is_owner(message.from_user.id):
-        await message.answer("Only owner can manage roles.")
+    if not await ensure_access(message, is_owner, deny_message="Only owner can manage roles."):
         return
     text = (
         "Role commands:\n"
@@ -29,7 +24,7 @@ async def admin_menu(message: Message) -> None:
 
 @router.message(F.text.startswith("add "))
 async def add_role_handler(message: Message) -> None:
-    if not is_owner(message.from_user.id):
+    if not await ensure_access(message, is_owner, deny_message="Only owner can manage roles."):
         return
     parts = message.text.split()
     if len(parts) != 3:
@@ -47,7 +42,7 @@ async def add_role_handler(message: Message) -> None:
 
 @router.message(F.text.startswith("remove "))
 async def remove_role_handler(message: Message) -> None:
-    if not is_owner(message.from_user.id):
+    if not await ensure_access(message, is_owner, deny_message="Only owner can manage roles."):
         return
     parts = message.text.split()
     if len(parts) != 3:

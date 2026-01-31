@@ -5,11 +5,44 @@ const state = {
   filter: "all",
   sort: "latest",
 };
+let lastFetchAt = 0;
+const REFRESH_INTERVAL_MS = 5000;
+
+function resolveCoverPath(cover) {
+  if (!cover) return "";
+  if (cover.startsWith("http://") || cover.startsWith("https://")) return cover;
+  if (cover.includes("assets/covers/")) {
+    return `/covers/${cover.split("assets/covers/").pop()}`;
+  }
+  if (cover.startsWith("/")) return cover;
+  return `/${cover}`;
+}
+
+function getChapterBase(manhwaId, chapterNumber) {
+  return `/manhwa/${manhwaId}/chapter-${chapterNumber}/`;
+}
 
 async function fetchManhwa() {
-  const res = await fetch("/data/manhwa.json");
+  const res = await fetch(`/manhwa.json?t=${Date.now()}`, {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-store" },
+  });
   if (!res.ok) return [];
   return res.json();
+}
+
+async function refreshManhwa(force = false) {
+  const now = Date.now();
+  if (!force && now - lastFetchAt < 1000) return;
+  lastFetchAt = now;
+  const data = await fetchManhwa();
+  if (!Array.isArray(data)) return;
+  state.manhwas = data;
+  if (state.selectedManhwaId && !state.manhwas.find((item) => item.id === state.selectedManhwaId)) {
+    state.selectedManhwaId = null;
+  }
+  renderIndex(state.manhwas);
+  renderReader(state.manhwas);
 }
 
 function getQueryParam(name) {
@@ -36,7 +69,7 @@ function renderIndex(manhwas) {
     const card = document.createElement("div");
     card.className = `card${state.selectedManhwaId === item.id ? " active" : ""}`;
     const cover = document.createElement("img");
-    cover.src = item.cover;
+    cover.src = resolveCoverPath(item.cover);
     cover.alt = item.title;
     cover.loading = "lazy";
     cover.onerror = () => {
@@ -57,6 +90,11 @@ function renderIndex(manhwas) {
     card.appendChild(cover);
     card.appendChild(body);
     card.onclick = () => {
+      const latest = getLatestChapterNumber(item);
+      if (latest) {
+        window.location.href = `/reader.html?slug=${item.id}&chapter=${latest}`;
+        return;
+      }
       state.selectedManhwaId = item.id;
       renderIndex(manhwas);
       renderChapters(item);
@@ -85,7 +123,7 @@ function renderIndex(manhwas) {
         btn.className = "chapter-btn";
         btn.textContent = `${t("chapter")} ${chapter.number}`;
         btn.onclick = () => {
-          window.location.href = `/reader.html?manhwa=${manhwa.id}&chapter=${chapter.number}`;
+          window.location.href = `/reader.html?slug=${manhwa.id}&chapter=${chapter.number}`;
         };
         chapterList.appendChild(btn);
       });
@@ -115,10 +153,11 @@ function renderReader(manhwas) {
   readerMeta.textContent = `${t("chapter")} ${chapter.number} • ${chapter.pages.length} ${t("pages")}`;
   updateReaderMeta(manhwa, chapter);
   pages.innerHTML = "";
+  const chapterBase = getChapterBase(manhwa.id, chapter.number);
   const observer = createLazyObserver();
   chapter.pages.forEach((page) => {
     const img = document.createElement("img");
-    img.dataset.src = `${chapter.path}${page}`;
+    img.dataset.src = `${chapterBase}${page}`;
     img.loading = "lazy";
     img.alt = `${manhwa.title} ${chapter.number}`;
     if (observer) {
@@ -135,14 +174,11 @@ function renderReader(manhwas) {
 }
 
 document.addEventListener("DOMContentLoaded", async () => {
-  state.manhwas = await fetchManhwa();
+  await refreshManhwa(true);
   const slug = getQueryParam("slug");
   if (slug) {
     state.selectedManhwaId = slug;
   }
-  renderIndex(state.manhwas);
-  renderReader(state.manhwas);
-
   wireControls();
 });
 
@@ -151,6 +187,22 @@ window.addEventListener("langChanged", () => {
   renderIndex(state.manhwas);
   renderReader(state.manhwas);
 });
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    refreshManhwa();
+  }
+});
+
+window.addEventListener("focus", () => {
+  refreshManhwa();
+});
+
+setInterval(() => {
+  if (!document.hidden) {
+    refreshManhwa();
+  }
+}, REFRESH_INTERVAL_MS);
 
 function wireControls() {
   const searchInput = document.getElementById("searchInput");
@@ -217,6 +269,14 @@ function getLatestChapter(manhwa) {
   return numbers.length ? Math.max(...numbers) : 0;
 }
 
+function getLatestChapterNumber(manhwa) {
+  if (!manhwa.chapters || !manhwa.chapters.length) return null;
+  const sorted = manhwa.chapters
+    .slice()
+    .sort((a, b) => parseFloat(b.number) - parseFloat(a.number));
+  return sorted[0]?.number || null;
+}
+
 function debounce(fn, wait) {
   let timer;
   return (...args) => {
@@ -272,7 +332,7 @@ function updateIndexMeta(manhwa) {
   setMeta({
     title: `${manhwa.title} • Manhwa`,
     description: `${manhwa.title} — ${manhwa.status} • ${manhwa.chapters?.length || 0} chapters`,
-    image: manhwa.cover,
+    image: resolveCoverPath(manhwa.cover),
   });
 }
 
@@ -280,7 +340,7 @@ function updateReaderMeta(manhwa, chapter) {
   setMeta({
     title: `${manhwa.title} • Chapter ${chapter.number}`,
     description: `${manhwa.title} — Chapter ${chapter.number}`,
-    image: manhwa.cover,
+    image: resolveCoverPath(manhwa.cover),
   });
 }
 

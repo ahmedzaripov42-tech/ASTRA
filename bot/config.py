@@ -18,7 +18,7 @@ NETLIFY_HOOK = os.getenv("NETLIFY_HOOK", "")
 WEBAPP_URL = os.getenv("WEBAPP_URL", "")
 
 ADMINS_PATH = DATA_DIR / "admins.json"
-MANHWA_PATH = DATA_DIR / "manhwa.json"
+MANHWA_PATH = PUBLIC_DIR / "manhwa.json"
 LOGS_PATH = DATA_DIR / "logs.json"
 SETTINGS_PATH = DATA_DIR / "settings.json"
 CHANNEL_CACHE_PATH = DATA_DIR / "channel_cache.json"

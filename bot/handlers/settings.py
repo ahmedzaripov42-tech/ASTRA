@@ -6,10 +6,10 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from ..config import SETTINGS_PATH
-from ..i18n import button_label, button_labels_all, get_user_lang, menu_labels, t
+from ..i18n import button_label, button_labels_all, ensure_access, get_user_lang, menu_labels, t
 from ..flow_registry import track, untrack
 from ..keyboards import inline_cancel_back_kb, main_menu_kb, quality_kb
-from ..roles import can_manage_manhwa, is_blocked
+from ..roles import can_manage_manhwa
 from server import processor
 
 router = Router()
@@ -22,9 +22,7 @@ class SettingsState(StatesGroup):
 
 @router.message(F.text.in_(menu_labels("quality")))
 async def quality_menu(message: Message) -> None:
-    if is_blocked(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
+    if not await ensure_access(message, can_manage_manhwa):
         return
     settings = processor.load_settings(SETTINGS_PATH)
     lang = get_user_lang(message.from_user.id)
@@ -36,13 +34,7 @@ async def quality_menu(message: Message) -> None:
 
 @router.message(F.text.in_(processor.QUALITY_LABELS))
 async def set_quality(message: Message) -> None:
-    if is_blocked(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
-        return
-    if not can_manage_manhwa(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
+    if not await ensure_access(message, can_manage_manhwa):
         return
     settings = processor.load_settings(SETTINGS_PATH)
     settings["quality_mode"] = processor.QUALITY_LABELS[message.text]
@@ -67,13 +59,7 @@ async def file_rules(message: Message) -> None:
 
 @router.message(F.text.in_(menu_labels("settings")))
 async def platform_settings(message: Message, state: FSMContext) -> None:
-    if is_blocked(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
-        return
-    if not can_manage_manhwa(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
+    if not await ensure_access(message, can_manage_manhwa):
         return
     await state.clear()
     track(message.chat.id, message.from_user.id)
@@ -89,15 +75,7 @@ async def platform_settings(message: Message, state: FSMContext) -> None:
 
 @router.callback_query(F.data == "settings:auto")
 async def toggle_auto_deploy(callback: CallbackQuery) -> None:
-    if is_blocked(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
-        return
-    if not can_manage_manhwa(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
+    if not await ensure_access(callback, can_manage_manhwa):
         return
     settings = processor.load_settings(SETTINGS_PATH)
     settings["auto_deploy"] = not settings["auto_deploy"]
@@ -111,15 +89,7 @@ async def toggle_auto_deploy(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data == "settings:dmca_text")
 async def dmca_text_start(callback: CallbackQuery, state: FSMContext) -> None:
-    if is_blocked(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
-        return
-    if not can_manage_manhwa(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
+    if not await ensure_access(callback, can_manage_manhwa):
         return
     await state.set_state(SettingsState.dmca_text)
     lang = get_user_lang(callback.from_user.id)
@@ -132,13 +102,7 @@ async def dmca_text_start(callback: CallbackQuery, state: FSMContext) -> None:
 
 @router.message(SettingsState.dmca_text, F.text)
 async def dmca_text_save(message: Message, state: FSMContext) -> None:
-    if is_blocked(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
-        return
-    if not can_manage_manhwa(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
+    if not await ensure_access(message, can_manage_manhwa):
         return
     settings = processor.load_settings(SETTINGS_PATH)
     settings["dmca_watermark_text"] = message.text.strip()
@@ -148,17 +112,16 @@ async def dmca_text_save(message: Message, state: FSMContext) -> None:
     await message.answer("DMCA watermark text updated.", reply_markup=_settings_kb(get_user_lang(message.from_user.id)))
 
 
+@router.message(SettingsState.dmca_text, ~F.text)
+async def dmca_text_invalid(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    untrack(message.chat.id, message.from_user.id)
+    await message.answer("Invalid input. Returning to main menu.", reply_markup=main_menu_kb(get_user_lang(message.from_user.id)))
+
+
 @router.callback_query(F.data == "settings:dmca_opacity")
 async def dmca_opacity_start(callback: CallbackQuery, state: FSMContext) -> None:
-    if is_blocked(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
-        return
-    if not can_manage_manhwa(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
+    if not await ensure_access(callback, can_manage_manhwa):
         return
     await state.set_state(SettingsState.dmca_opacity)
     lang = get_user_lang(callback.from_user.id)
@@ -171,18 +134,14 @@ async def dmca_opacity_start(callback: CallbackQuery, state: FSMContext) -> None
 
 @router.message(SettingsState.dmca_opacity, F.text)
 async def dmca_opacity_save(message: Message, state: FSMContext) -> None:
-    if is_blocked(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
-        return
-    if not can_manage_manhwa(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
+    if not await ensure_access(message, can_manage_manhwa):
         return
     try:
         value = float(message.text.strip())
     except ValueError:
-        await message.answer("Invalid number. Send 0 to 1.")
+        await state.clear()
+        untrack(message.chat.id, message.from_user.id)
+        await message.answer("Invalid number. Returning to main menu.", reply_markup=main_menu_kb(get_user_lang(message.from_user.id)))
         return
     value = max(0.0, min(1.0, value))
     settings = processor.load_settings(SETTINGS_PATH)
@@ -194,6 +153,13 @@ async def dmca_opacity_save(message: Message, state: FSMContext) -> None:
         f"DMCA opacity updated to {value}",
         reply_markup=_settings_kb(get_user_lang(message.from_user.id)),
     )
+
+
+@router.message(SettingsState.dmca_opacity, ~F.text)
+async def dmca_opacity_invalid(message: Message, state: FSMContext) -> None:
+    await state.clear()
+    untrack(message.chat.id, message.from_user.id)
+    await message.answer("Invalid input. Returning to main menu.", reply_markup=main_menu_kb(get_user_lang(message.from_user.id)))
 
 
 @router.callback_query(F.data == "settings:menu")

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 from pathlib import Path
 
@@ -30,6 +31,15 @@ def netlify_deploy(hook: str) -> str:
         return f"Netlify deploy failed: {response.status_code}"
     except Exception as exc:  # noqa: BLE001
         return f"Netlify deploy failed: {exc}"
+
+
+def auto_deploy(message: str) -> tuple[str, str]:
+    repo = os.getenv("GITHUB_REPO", "")
+    token = os.getenv("GITHUB_TOKEN", "")
+    hook = os.getenv("NETLIFY_HOOK", "")
+    git_result = git_push(message, repo=repo, token=token)
+    netlify_result = netlify_deploy(hook)
+    return git_result, netlify_result
 
 
 def _has_changes() -> bool:

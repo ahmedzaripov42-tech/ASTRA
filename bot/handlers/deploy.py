@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import logging
+
 from aiogram import F, Router
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from ..config import GITHUB_REPO, GITHUB_TOKEN, NETLIFY_HOOK
-from ..i18n import button_label, get_user_lang, menu_labels, t
+from ..i18n import button_label, ensure_access, get_user_lang, menu_labels, t
 from ..keyboards import main_menu_kb
-from ..roles import can_deploy, is_blocked
+from ..roles import can_deploy
 from server import github
 
 router = Router()
@@ -14,50 +16,43 @@ router = Router()
 
 @router.message(F.text.in_(menu_labels("deploy")))
 async def deploy_menu(message: Message) -> None:
-    if is_blocked(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
-        return
-    if not can_deploy(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("access_denied", lang))
+    if not await ensure_access(message, can_deploy):
         return
     await message.answer("Choose deploy action:", reply_markup=_deploy_kb(get_user_lang(message.from_user.id)))
 
 
 @router.callback_query(F.data == "deploy:git")
 async def git_push_handler(callback: CallbackQuery) -> None:
-    if not can_deploy(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
+    if not await ensure_access(callback, can_deploy):
         return
     result = github.git_push("Bot update", repo=GITHUB_REPO, token=GITHUB_TOKEN)
+    if "failed" in result.lower():
+        logging.error("Git push failed: %s", result)
     await callback.message.answer(result)
     await callback.answer()
 
 
 @router.callback_query(F.data == "deploy:netlify")
 async def netlify_handler(callback: CallbackQuery) -> None:
-    if not can_deploy(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
+    if not await ensure_access(callback, can_deploy):
         return
     result = github.netlify_deploy(NETLIFY_HOOK)
+    if "failed" in result.lower() or "not configured" in result.lower():
+        logging.error("Netlify deploy failed: %s", result)
     await callback.message.answer(result)
     await callback.answer()
 
 
 @router.callback_query(F.data == "deploy:all")
 async def deploy_all(callback: CallbackQuery) -> None:
-    if not can_deploy(callback.from_user.id):
-        lang = get_user_lang(callback.from_user.id)
-        await callback.message.answer(t("access_denied", lang))
-        await callback.answer()
+    if not await ensure_access(callback, can_deploy):
         return
     git_result = github.git_push("Bot update", repo=GITHUB_REPO, token=GITHUB_TOKEN)
     netlify_result = github.netlify_deploy(NETLIFY_HOOK)
+    if "failed" in git_result.lower():
+        logging.error("Git push failed: %s", git_result)
+    if "failed" in netlify_result.lower() or "not configured" in netlify_result.lower():
+        logging.error("Netlify deploy failed: %s", netlify_result)
     await callback.message.answer(f"{git_result}\n{netlify_result}")
     await callback.answer()
 

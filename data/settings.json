@@ -1,6 +1,7 @@
 {
   "quality_mode": "original",
-  "auto_deploy": false,
+  "auto_deploy": true,
   "dmca_watermark_text": "",
-  "dmca_watermark_opacity": 0.0
+  "dmca_watermark_opacity": 0.0,
+  "legacy_imported": true
 }

@@ -19,7 +19,11 @@ const saveBtn = document.getElementById("saveBtn");
 async function api(path, options = {}) {
   const headers = options.headers || {};
   headers["X-Telegram-InitData"] = tg.initData || "";
-  return fetch(path, { ...options, headers });
+  return fetch(path, { ...options, headers, cache: "no-store" });
+}
+
+function getChapterBase(manhwaId, chapterNumber) {
+  return `/manhwa/${manhwaId}/chapter-${chapterNumber}/`;
 }
 
 function setDirty(value) {
@@ -43,12 +47,19 @@ function renderDetails() {
     details.innerHTML = '<div class="empty-state">Select a manhwa to start managing chapters.</div>';
     return;
   }
+  const status = formatStatus(state.currentManhwa.status);
   details.innerHTML = `
     <div class="section-title">Manhwa</div>
     <div><strong>${state.currentManhwa.title}</strong></div>
-    <div>Status: ${state.currentManhwa.status}</div>
+    <div>Status: ${status}</div>
     <div>Genres: ${state.currentManhwa.genres.join(", ")}</div>
   `;
+}
+
+function formatStatus(status) {
+  if (!status) return "";
+  const normalized = String(status).toLowerCase();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 function renderChapters() {
@@ -67,11 +78,12 @@ function renderChapters() {
 function renderPages() {
   pageGrid.innerHTML = "";
   if (!state.currentChapter) return;
+  const base = getChapterBase(state.currentManhwa.id, state.currentChapter.number);
   state.pages.forEach((page, index) => {
     const card = document.createElement("div");
     card.className = "page-card";
     const img = document.createElement("img");
-    img.src = state.currentChapter.path + page;
+    img.src = base + page;
     card.appendChild(img);
     const actions = document.createElement("div");
     actions.className = "page-actions";
@@ -161,4 +173,19 @@ window.addEventListener("beforeunload", (event) => {
 });
 
 loadManhwas();
+
+function refreshIfSafe() {
+  if (state.dirty) return;
+  loadManhwas();
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    refreshIfSafe();
+  }
+});
+
+window.addEventListener("focus", () => {
+  refreshIfSafe();
+});
 

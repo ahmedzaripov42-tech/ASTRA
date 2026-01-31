@@ -6,20 +6,12 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from ..i18n import get_user_lang, has_user_lang, set_user_lang, t
 from ..keyboards import main_menu_kb
-from ..roles import can_manage_manhwa, is_blocked
 
 router = Router()
 
 
 @router.message(CommandStart())
 async def start_handler(message: Message) -> None:
-    if is_blocked(message.from_user.id):
-        await message.answer(t("access_denied", "uz"))
-        return
-    if can_manage_manhwa(message.from_user.id):
-        lang = get_user_lang(message.from_user.id)
-        await message.answer(t("welcome", lang), reply_markup=main_menu_kb(lang))
-        return
     if has_user_lang(message.from_user.id):
         lang = get_user_lang(message.from_user.id)
         await message.answer(t("welcome", lang), reply_markup=main_menu_kb(lang))

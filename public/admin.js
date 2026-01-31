@@ -6,9 +6,16 @@ const adminState = {
 };
 
 async function fetchManhwa() {
-  const res = await fetch("/data/manhwa.json");
+  const res = await fetch(`/manhwa.json?t=${Date.now()}`, {
+    cache: "no-store",
+    headers: { "Cache-Control": "no-store" },
+  });
   if (!res.ok) return [];
   return res.json();
+}
+
+function getChapterBase(manhwaId, chapterNumber) {
+  return `/manhwa/${manhwaId}/chapter-${chapterNumber}/`;
 }
 
 function renderAdminList() {
@@ -31,11 +38,18 @@ function renderAdminDetails() {
     details.textContent = t("admin_select");
     return;
   }
+  const status = formatStatus(adminState.currentManhwa.status);
   details.innerHTML = `
     <div><strong>${adminState.currentManhwa.title}</strong></div>
-    <div>${t("admin_status")}: ${adminState.currentManhwa.status}</div>
+    <div>${t("admin_status")}: ${status}</div>
     <div>${t("admin_genres")}: ${adminState.currentManhwa.genres.join(", ")}</div>
   `;
+}
+
+function formatStatus(status) {
+  if (!status) return "";
+  const normalized = String(status).toLowerCase();
+  return normalized.charAt(0).toUpperCase() + normalized.slice(1);
 }
 
 function renderAdminChapters() {
@@ -63,11 +77,12 @@ function renderAdminPages() {
     grid.innerHTML = `<div class="meta">${t("admin_select_chapter")}</div>`;
     return;
   }
+  const base = getChapterBase(adminState.currentManhwa.id, adminState.currentChapter.number);
   adminState.pages.forEach((page, index) => {
     const card = document.createElement("div");
     card.className = "page-card";
     const img = document.createElement("img");
-    img.src = `${adminState.currentChapter.path}${page}`;
+    img.src = `${base}${page}`;
     img.alt = page;
     img.loading = "lazy";
     card.appendChild(img);
@@ -174,7 +189,26 @@ function sendToBot() {
 }
 
 async function refresh() {
+  const currentId = adminState.currentManhwa?.id;
+  const currentChapterNumber = adminState.currentChapter?.number;
   adminState.manhwas = await fetchManhwa();
+  if (currentId) {
+    adminState.currentManhwa = adminState.manhwas.find((item) => item.id === currentId) || null;
+    if (adminState.currentManhwa && currentChapterNumber != null) {
+      adminState.currentChapter =
+        adminState.currentManhwa.chapters.find(
+          (chapter) => String(chapter.number) === String(currentChapterNumber)
+        ) || null;
+      adminState.pages = adminState.currentChapter ? [...adminState.currentChapter.pages] : [];
+    } else {
+      adminState.currentChapter = null;
+      adminState.pages = [];
+    }
+  } else {
+    adminState.currentManhwa = null;
+    adminState.currentChapter = null;
+    adminState.pages = [];
+  }
   renderAdminList();
   renderAdminDetails();
   renderAdminChapters();
@@ -186,6 +220,16 @@ document.addEventListener("DOMContentLoaded", async () => {
   document.getElementById("savePagesBtn")?.addEventListener("click", savePageOrder);
   document.getElementById("uploadConfirmBtn")?.addEventListener("click", sendToBot);
   wireUploadPreview();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    refresh();
+  }
+});
+
+window.addEventListener("focus", () => {
+  refresh();
 });
 
 window.addEventListener("langChanged", () => {
