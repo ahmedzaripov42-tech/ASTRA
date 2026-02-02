@@ -1,0 +1,9 @@
+/manhwa/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/covers/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/manhwa.json
+  Cache-Control: no-store
+

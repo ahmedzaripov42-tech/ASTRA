@@ -155,18 +155,54 @@ function renderReader(manhwas) {
   pages.innerHTML = "";
   const chapterBase = getChapterBase(manhwa.id, chapter.number);
   const observer = createLazyObserver();
-  chapter.pages.forEach((page) => {
+  const immediateCount = 2;
+  const immediatePages = chapter.pages.slice(0, immediateCount);
+  const deferredPages = chapter.pages.slice(immediateCount);
+
+  const createPageImage = (page, { eager = false, highPriority = false } = {}) => {
     const img = document.createElement("img");
-    img.dataset.src = `${chapterBase}${page}`;
-    img.loading = "lazy";
     img.alt = `${manhwa.title} ${chapter.number}`;
-    if (observer) {
+    img.decoding = "async";
+    img.loading = eager ? "eager" : "lazy";
+    if (highPriority && "fetchPriority" in img) {
+      img.fetchPriority = "high";
+    }
+    const src = `${chapterBase}${page}`;
+    if (observer && !eager) {
+      img.dataset.src = src;
       observer.observe(img);
     } else {
-      img.src = img.dataset.src;
+      img.src = src;
     }
+    return img;
+  };
+
+  immediatePages.forEach((page, index) => {
+    const img = createPageImage(page, { eager: true, highPriority: index === 0 });
     pages.appendChild(img);
   });
+
+  if (deferredPages.length) {
+    const schedule = (fn) => {
+      if ("requestIdleCallback" in window) {
+        return requestIdleCallback(fn, { timeout: 1500 });
+      }
+      return setTimeout(fn, 16);
+    };
+    let deferredIndex = 0;
+    const batchSize = 4;
+    const appendBatch = () => {
+      const end = Math.min(deferredIndex + batchSize, deferredPages.length);
+      for (; deferredIndex < end; deferredIndex += 1) {
+        const img = createPageImage(deferredPages[deferredIndex]);
+        pages.appendChild(img);
+      }
+      if (deferredIndex < deferredPages.length) {
+        schedule(appendBatch);
+      }
+    };
+    schedule(appendBatch);
+  }
 
   pages.addEventListener("contextmenu", (event) => event.preventDefault());
 
@@ -313,6 +349,7 @@ function setupChapterNav(manhwa, chapter) {
 }
 
 function createLazyObserver() {
+  if ("loading" in HTMLImageElement.prototype) return null;
   if (!("IntersectionObserver" in window)) return null;
   return new IntersectionObserver(
     (entries, observer) => {
