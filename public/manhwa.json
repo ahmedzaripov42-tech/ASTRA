@@ -875,40 +875,8 @@
     "cover": "/covers/zolim-chaqaloq.jpg",
     "description": "",
     "genres": [],
-    "chapters": [
-      {
-        "id": "zolim-chaqaloq-chapter-1",
-        "number": "1",
-        "title": "Chapter 1",
-        "pages": [
-          "001.jpg",
-          "002.jpg",
-          "003.jpg",
-          "004.jpg",
-          "005.jpg",
-          "006.jpg",
-          "007.jpg",
-          "008.jpg",
-          "009.jpg",
-          "010.jpg",
-          "011.jpg",
-          "012.jpg",
-          "013.jpg",
-          "014.jpg",
-          "015.jpg",
-          "016.jpg",
-          "017.jpg",
-          "018.jpg",
-          "019.jpg",
-          "020.jpg",
-          "021.jpg",
-          "022.jpg",
-          "023.jpg"
-        ],
-        "createdAt": "2026-01-31T16:50:11"
-      }
-    ],
+    "chapters": [],
     "status": "ongoing",
-    "updatedAt": "2026-01-31T16:50:11"
+    "updatedAt": "2026-02-02T20:18:48"
   }
 ]

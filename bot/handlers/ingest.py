@@ -917,27 +917,128 @@ def _index_source_documents(cache: list[dict], manhwas: list[dict], manhwa_id: s
     return index
 
 
-def _extract_hashtag_tokens(text: str) -> list[str]:
+def _extract_hashtag_raw(text: str) -> list[str]:
     if not text:
         return []
-    tags = re.findall(r"#([\w\-]+)", text)
+    return [tag for tag in re.findall(r"#([\w\-]+)", text) if tag]
+
+
+def _extract_hashtag_tokens(text: str) -> list[str]:
+    tags = _extract_hashtag_raw(text)
     return [tag.replace("-", " ").replace("_", " ") for tag in tags if tag]
 
 
-def _extract_chapters_from_entry(entry: dict) -> list[str]:
-    base_text = f"{entry.get('caption', '')} {entry.get('file_name', '')} {entry.get('text', '')}"
-    hashtags_text = " ".join(_extract_hashtag_tokens(base_text))
-    chapters = extract_chapter_numbers(base_text)
+def _normalize_match_value(value: str) -> str:
+    if not value:
+        return ""
+    value = value.lower()
+    value = value.replace("_", " ").replace("-", " ")
+    value = re.sub(r"[^a-z0-9\s]", " ", value)
+    value = re.sub(r"\s+", " ", value)
+    return value.strip()
+
+
+def _hashtag_text_from_entry(entry: dict) -> str:
+    base = f"{entry.get('caption', '')} {entry.get('text', '')}"
+    return " ".join(_extract_hashtag_tokens(base)).strip()
+
+
+def _resolve_manhwa_from_hashtags(hashtags_text: str, manhwas: list[dict]) -> tuple[str | None, float]:
+    if not hashtags_text:
+        return None, 0.0
+    normalized_hashtags = _normalize_match_value(hashtags_text)
+    for item in manhwas:
+        manhwa_id = item.get("id", "")
+        title = item.get("title", "")
+        slug_norm = _normalize_match_value(manhwa_id)
+        title_norm = _normalize_match_value(title)
+        if slug_norm and slug_norm in normalized_hashtags:
+            return manhwa_id, 0.98
+        if title_norm and title_norm in normalized_hashtags:
+            return manhwa_id, 0.9
+    matched_id, score = match_manhwa_fuzzy(hashtags_text, manhwas, min_score=0.5)
+    return matched_id, score
+
+
+def _expand_hashtag_ranges(text: str) -> list[str]:
+    if not text:
+        return []
+    ranges = []
+    pattern = r"(\d{1,4})\s+(\d{1,4})\s*(bob|qism|qisim|qsm|ch|chapter|глава|гл|часть)"
+    for start, end, _ in re.findall(pattern, text, flags=re.IGNORECASE):
+        if start.isdigit() and end.isdigit():
+            start_int = int(start)
+            end_int = int(end)
+            if end_int >= start_int and (end_int - start_int) <= 250:
+                ranges.extend([str(num) for num in range(start_int, end_int + 1)])
+    return ranges
+
+
+def _extract_chapters_from_entry(entry: dict) -> tuple[list[str], str]:
+    base_text = f"{entry.get('caption', '')} {entry.get('text', '')}"
+    filename_text = entry.get("file_name", "")
+    hashtags_text = _hashtag_text_from_entry(entry)
+
     if hashtags_text:
-        chapters.extend(extract_chapter_numbers(hashtags_text))
+        chapters = extract_chapter_numbers(hashtags_text)
+        chapters.extend(_expand_hashtag_ranges(hashtags_text))
+        if chapters:
+            return _dedupe_chapters(chapters), "hashtag"
+
+    if base_text.strip():
+        chapters = extract_chapter_numbers(base_text)
+        if chapters:
+            return _dedupe_chapters(chapters), "caption"
+
+    if filename_text:
+        chapters = extract_chapter_numbers(filename_text)
+        if chapters:
+            return _dedupe_chapters(chapters), "filename"
+
+    return [], ""
+
+
+def _dedupe_chapters(values: list[str]) -> list[str]:
     seen = set()
     ordered: list[str] = []
-    for value in chapters:
+    for value in values:
         if value in seen:
             continue
         seen.add(value)
         ordered.append(value)
     return ordered
+
+
+def _entry_match_text(entry: dict) -> str:
+    base_text = f"{entry.get('caption', '')} {entry.get('text', '')} {entry.get('file_name', '')}"
+    hashtags_text = _hashtag_text_from_entry(entry)
+    return f"{base_text} {hashtags_text}".strip()
+
+
+def _resolve_manhwa_for_entry(entry: dict, manhwas: list[dict]) -> tuple[str | None, float, str]:
+    hashtags_text = _hashtag_text_from_entry(entry)
+    manhwa_id, score = _resolve_manhwa_from_hashtags(hashtags_text, manhwas)
+    if manhwa_id:
+        return manhwa_id, score, "hashtag"
+    caption_text = f"{entry.get('caption', '')} {entry.get('text', '')}".strip()
+    if caption_text:
+        manhwa_id, score = match_manhwa_fuzzy(caption_text, manhwas, min_score=0.6)
+        if manhwa_id:
+            return manhwa_id, score, "caption"
+    filename_text = entry.get("file_name", "")
+    if filename_text:
+        manhwa_id, score = match_manhwa_fuzzy(filename_text, manhwas, min_score=0.6)
+        if manhwa_id:
+            return manhwa_id, score, "filename"
+    return None, 0.0, ""
+
+
+def _channel_key(entry: dict) -> str:
+    return (
+        _normalize_channel_username(entry.get("channel_username"))
+        or _normalize_channel_username(entry.get("channel_title"))
+        or str(entry.get("channel_id") or "")
+    )
 
 
 def _build_source_candidates(
@@ -962,12 +1063,19 @@ def _build_source_candidates(
             continue
         if not _is_source_entry(entry):
             continue
-        text = f"{entry.get('caption', '')} {entry.get('file_name', '')}"
-        matched_id, score = match_manhwa_fuzzy(text, manhwas)
+        matched_id, score, manhwa_source = _resolve_manhwa_for_entry(entry, manhwas)
         if matched_id != manhwa_id:
             stats["skipped_posts"] += 1
+            _log_ingest_event(
+                "source_skip",
+                {
+                    "channel": entry.get("channel_username") or entry.get("channel_title"),
+                    "message_id": entry.get("message_id"),
+                    "reason": "manhwa_mismatch" if matched_id else "manhwa_not_resolved",
+                },
+            )
             continue
-        chapters = _extract_chapters_from_entry(entry)
+        chapters, chapter_source = _extract_chapters_from_entry(entry)
         if not chapters:
             stats["skipped_posts"] += 1
             _log_ingest_event(
@@ -1014,6 +1122,8 @@ def _build_source_candidates(
                 "confidence": score,
                 "status": status,
                 "reason": reason,
+                "manhwa_source": manhwa_source,
+                "chapter_source": chapter_source,
             }
             _log_ingest_event(
                 "chapter_detected",
@@ -1022,6 +1132,8 @@ def _build_source_candidates(
                     "chapter": chapter,
                     "status": status,
                     "source": candidates[chapter]["source"],
+                    "manhwa_source": manhwa_source,
+                    "chapter_source": chapter_source,
                 },
             )
     sorted_candidates = sorted(candidates.values(), key=_chapter_sort_key)
@@ -1065,21 +1177,21 @@ def _build_auto_candidates(manhwa_id: str, cache: list[dict], manhwas: list[dict
     processed_files = set(manhwa_state.get("processed_files", []))
 
     catalog_entries = [entry for entry in cache if _is_catalog_entry(entry)]
+    source_candidates, source_stats = _build_source_candidates(
+        manhwa_id,
+        cache,
+        manhwas,
+        existing,
+        processed_sources,
+        processed_files,
+    )
     if not catalog_entries:
-        candidates, stats = _build_source_candidates(
-            manhwa_id,
-            cache,
-            manhwas,
-            existing,
-            processed_sources,
-            processed_files,
-        )
         _log_ingest_event(
             "catalog_empty_fallback",
             {"manhwa_id": manhwa_id, "reason": "no_catalog_entries"},
         )
-        _log_chapter_gaps(manhwa_id, candidates)
-        return candidates, stats, ingest_state
+        _log_chapter_gaps(manhwa_id, source_candidates)
+        return source_candidates, source_stats, ingest_state
 
     link_index = _index_documents_by_link(cache)
     source_index = _index_source_documents(cache, manhwas, manhwa_id)
@@ -1191,6 +1303,8 @@ def _build_auto_candidates(manhwa_id: str, cache: list[dict], manhwas: list[dict
                 "confidence": confidence,
                 "status": status,
                 "reason": reason,
+                "manhwa_source": "caption",
+                "chapter_source": "caption",
             }
             _log_ingest_event(
                 "chapter_detected",
@@ -1200,31 +1314,48 @@ def _build_auto_candidates(manhwa_id: str, cache: list[dict], manhwas: list[dict
                     "status": status,
                     "source": candidates[chapter]["source"],
                     "external_url": external_url,
+                    "manhwa_source": "caption",
+                    "chapter_source": "caption",
                 },
             )
         if channel_key and message_id:
             last_scanned[channel_key] = max(int(last_scanned.get(channel_key, 0)), message_id)
 
     if stats["total"] == 0:
-        candidates, stats = _build_source_candidates(
-            manhwa_id,
-            cache,
-            manhwas,
-            existing,
-            processed_sources,
-            processed_files,
-        )
         _log_ingest_event(
             "catalog_empty_fallback",
             {"manhwa_id": manhwa_id, "reason": "no_catalog_candidates"},
         )
-        _log_chapter_gaps(manhwa_id, candidates)
-        return candidates, stats, ingest_state
+        _log_chapter_gaps(manhwa_id, source_candidates)
+        return source_candidates, source_stats, ingest_state
+
+    if source_candidates:
+        for candidate in source_candidates:
+            chapter = candidate.get("chapter")
+            if not chapter:
+                continue
+            existing_candidate = candidates.get(chapter)
+            if not existing_candidate:
+                candidates[chapter] = candidate
+                _log_ingest_event(
+                    "source_merge_add",
+                    {"manhwa_id": manhwa_id, "chapter": chapter, "source": candidate.get("source")},
+                )
+                continue
+            if existing_candidate.get("status") == "missing_source" and candidate.get("source"):
+                existing_candidate["source"] = candidate.get("source")
+                existing_candidate["status"] = candidate.get("status")
+                existing_candidate["reason"] = "source_matched"
+                _log_ingest_event(
+                    "source_merge_fill",
+                    {"manhwa_id": manhwa_id, "chapter": chapter, "source": candidate.get("source")},
+                )
 
     ingest_state.setdefault("manhwas", {})
     ingest_state["manhwas"].setdefault(manhwa_id, {})
     ingest_state["manhwas"][manhwa_id]["last_scanned"] = last_scanned
     sorted_candidates = sorted(candidates.values(), key=_chapter_sort_key)
+    stats = _summarize_candidates(sorted_candidates)
     _log_chapter_gaps(manhwa_id, sorted_candidates)
     return sorted_candidates, stats, ingest_state
 

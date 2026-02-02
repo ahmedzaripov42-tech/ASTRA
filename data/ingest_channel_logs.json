@@ -22,5 +22,29 @@
       "manhwa_id": "zolim-chaqaloq",
       "reason": "no_catalog_entries"
     }
+  },
+  {
+    "time": "2026-02-02T19:31:05",
+    "event": "catalog_empty_fallback",
+    "details": {
+      "manhwa_id": "zolim-chaqaloq",
+      "reason": "no_catalog_entries"
+    }
+  },
+  {
+    "time": "2026-02-02T20:11:53",
+    "event": "catalog_empty_fallback",
+    "details": {
+      "manhwa_id": "zolim-chaqaloq",
+      "reason": "no_catalog_entries"
+    }
+  },
+  {
+    "time": "2026-02-02T20:12:19",
+    "event": "catalog_empty_fallback",
+    "details": {
+      "manhwa_id": "siren",
+      "reason": "no_catalog_entries"
+    }
   }
 ]
