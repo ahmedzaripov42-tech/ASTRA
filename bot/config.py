@@ -23,13 +23,35 @@ LOGS_PATH = DATA_DIR / "logs.json"
 SETTINGS_PATH = DATA_DIR / "settings.json"
 CHANNEL_CACHE_PATH = DATA_DIR / "channel_cache.json"
 INGEST_HISTORY_PATH = DATA_DIR / "ingest_history.json"
+INGEST_STATE_PATH = DATA_DIR / "ingest_state.json"
+INGEST_LOGS_PATH = DATA_DIR / "ingest_channel_logs.json"
 
 UPLOADS_DIR = DATA_DIR / "uploads"
+
+TELEGRAM_SAFE_FILE_MB = int(os.getenv("TELEGRAM_SAFE_FILE_MB", "20"))
+TELEGRAM_SAFE_FILE_BYTES = TELEGRAM_SAFE_FILE_MB * 1024 * 1024
 
 QUALITY_MODES = {
     "original": "Original (100%)",
     "lossless": "Lossless",
     "webtoon": "Webtoon Optimized",
     "smart": "Smart Compress",
+}
+
+INGEST_CACHE_LIMIT = int(os.getenv("INGEST_CACHE_LIMIT", "5000"))
+
+CATALOG_CHANNELS = [
+    "webman_olami_katalog",
+    "kurokamikatalog",
+]
+
+SOURCE_CHANNELS = [
+    "kuro_kam1",
+    "webman_olami",
+]
+
+CATALOG_SOURCE_MAP = {
+    "webman_olami_katalog": "webman_olami",
+    "kurokamikatalog": "kuro_kam1",
 }
 

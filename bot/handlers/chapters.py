@@ -2,7 +2,10 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import shutil
 from pathlib import Path
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
@@ -10,7 +13,15 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
-from ..config import LOGS_PATH, MANHWA_PATH, PUBLIC_DIR, SETTINGS_PATH, UPLOADS_DIR
+from ..config import (
+    LOGS_PATH,
+    MANHWA_PATH,
+    PUBLIC_DIR,
+    SETTINGS_PATH,
+    TELEGRAM_SAFE_FILE_BYTES,
+    TELEGRAM_SAFE_FILE_MB,
+    UPLOADS_DIR,
+)
 from ..flow_registry import track, untrack
 from ..i18n import ensure_access, get_user_lang, menu_labels, menu_labels_all, t
 from ..keyboards import (
@@ -254,6 +265,14 @@ async def upload_file(message: Message, state: FSMContext) -> None:
     local_path = None
 
     if message.document:
+        file_size = message.document.file_size or 0
+        if file_size > TELEGRAM_SAFE_FILE_BYTES:
+            await message.answer(
+                "File too large for Telegram upload.\n"
+                f"Size: {_size(file_size)} • Limit: {_size(TELEGRAM_SAFE_FILE_BYTES)}\n\n"
+                "Send a direct file URL (http/https) or upload the file to a channel and use the ingest flow."
+            )
+            return
         file = await message.bot.get_file(message.document.file_id)
         local_path = UPLOADS_DIR / message.document.file_name
         await message.bot.download_file(file.file_path, destination=local_path)
@@ -262,25 +281,43 @@ async def upload_file(message: Message, state: FSMContext) -> None:
         local_path = UPLOADS_DIR / f"chapter_{message.from_user.id}.jpg"
         await message.bot.download_file(file.file_path, destination=local_path)
 
-    try:
-        status_message = await message.answer("Analyzing file")
-        analysis_result = processor.analyze_upload(local_path)
-        analysis = analysis_result["analysis"]
-        suggested_mode = analysis.suggested_mode
-        await state.update_data(
-            upload_path=str(local_path),
-            suggested_mode=suggested_mode,
-        )
-        await state.set_state(UploadChapter.review)
-        summary = _format_analysis(analysis)
+    await _analyze_upload_path(message, state, local_path)
+
+
+@router.message(UploadChapter.upload, F.text & ~F.text.in_(menu_labels_all()))
+async def upload_text_or_invalid(message: Message, state: FSMContext) -> None:
+    if not await ensure_access(message, can_upload):
+        return
+    text = (message.text or "").strip()
+    if not _is_url(text):
+        await state.clear()
+        untrack(message.chat.id, message.from_user.id)
+        reset_prompt(message.from_user.id)
         lang = get_user_lang(message.from_user.id)
-        await status_message.edit_text("Analysis complete")
         await message.answer(
-            summary,
-            reply_markup=inline_confirm_kb("upload:confirm", "upload:change", "upload:back:chapter", lang=lang),
+            "Please send a file (PDF/ZIP/RAR/IMG) or a direct file URL.",
+            reply_markup=main_menu_kb(lang),
         )
+        return
+
+    data = await state.get_data()
+    if not data.get("manhwa_id") or not data.get("chapter_number"):
+        await state.clear()
+        untrack(message.chat.id, message.from_user.id)
+        reset_prompt(message.from_user.id)
+        await message.answer(
+            "Upload session expired. Returning to main menu.",
+            reply_markup=main_menu_kb(get_user_lang(message.from_user.id)),
+        )
+        return
+
+    try:
+        status_message = await message.answer("Downloading file")
+        local_path = await asyncio.to_thread(_download_external_file, text, UPLOADS_DIR)
+        await status_message.edit_text("Analyzing file")
+        await _analyze_upload_path(message, state, local_path, status_message=status_message)
     except Exception as exc:  # noqa: BLE001
-        logging.exception("Upload analysis failed")
+        logging.exception("URL upload failed")
         await state.clear()
         untrack(message.chat.id, message.from_user.id)
         reset_prompt(message.from_user.id)
@@ -289,18 +326,6 @@ async def upload_file(message: Message, state: FSMContext) -> None:
             f"Upload failed: {exc}",
             reply_markup=main_menu_kb(lang),
         )
-
-
-@router.message(UploadChapter.upload, F.text & ~F.text.in_(menu_labels_all()))
-async def upload_invalid(message: Message, state: FSMContext) -> None:
-    await state.clear()
-    untrack(message.chat.id, message.from_user.id)
-    reset_prompt(message.from_user.id)
-    lang = get_user_lang(message.from_user.id)
-    await message.answer(
-        "Please send a file (PDF/ZIP/RAR/IMG).",
-        reply_markup=main_menu_kb(lang),
-    )
 
 
 @router.callback_query(UploadChapter.review, F.data == "upload:change")
@@ -584,4 +609,68 @@ def _format_analysis(analysis) -> str:
         f"{warn_text}\n\n"
         "Proceed?"
     )
+
+
+async def _analyze_upload_path(
+    message: Message,
+    state: FSMContext,
+    local_path: Path | None,
+    status_message: Message | None = None,
+) -> None:
+    try:
+        if status_message is None:
+            status_message = await message.answer("Analyzing file")
+        analysis_result = await asyncio.to_thread(processor.analyze_upload, local_path)
+        analysis = analysis_result["analysis"]
+        suggested_mode = analysis.suggested_mode
+        await state.update_data(
+            upload_path=str(local_path),
+            suggested_mode=suggested_mode,
+        )
+        await state.set_state(UploadChapter.review)
+        summary = _format_analysis(analysis)
+        lang = get_user_lang(message.from_user.id)
+        await status_message.edit_text("Analysis complete")
+        await message.answer(
+            summary,
+            reply_markup=inline_confirm_kb("upload:confirm", "upload:change", "upload:back:chapter", lang=lang),
+        )
+    except Exception as exc:  # noqa: BLE001
+        logging.exception("Upload analysis failed")
+        await state.clear()
+        untrack(message.chat.id, message.from_user.id)
+        reset_prompt(message.from_user.id)
+        lang = get_user_lang(message.from_user.id)
+        await message.answer(
+            f"Upload failed: {exc}",
+            reply_markup=main_menu_kb(lang),
+        )
+
+
+def _is_url(value: str) -> bool:
+    try:
+        parsed = urlparse(value)
+    except Exception:  # noqa: BLE001
+        return False
+    return parsed.scheme in {"http", "https"} and bool(parsed.netloc)
+
+
+def _download_external_file(url: str, dest_dir: Path) -> Path:
+    dest_dir.mkdir(parents=True, exist_ok=True)
+    filename = Path(urlparse(url).path).name or "upload.pdf"
+    filename = Path(filename).name
+    target = dest_dir / filename
+    request = Request(url, headers={"User-Agent": "Mozilla/5.0"})
+    with urlopen(request, timeout=60) as response:  # noqa: S310
+        with target.open("wb") as handle:
+            shutil.copyfileobj(response, handle, length=1024 * 1024)
+    return target
+
+
+def _size(size: int) -> str:
+    if size < 1024:
+        return f"{size} B"
+    if size < 1024 * 1024:
+        return f"{size / 1024:.1f} KB"
+    return f"{size / (1024 * 1024):.1f} MB"
 

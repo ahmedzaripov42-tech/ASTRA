@@ -318,6 +318,8 @@ def process_upload(
     quality_override: Optional[str] = None,
     progress_callback: Optional[Callable[[str, Optional[int], Optional[int]], None]] = None,
     auto_deploy_enabled: bool = True,
+    page_prefix: str = "",
+    page_padding: int = 3,
 ) -> Dict:
     if not upload_path:
         raise ValueError("Upload file not found.")
@@ -346,6 +348,8 @@ def process_upload(
             dmca_text=settings.get("dmca_watermark_text", ""),
             dmca_opacity=settings.get("dmca_watermark_opacity", 0.0),
             progress_callback=progress_callback,
+            page_prefix=page_prefix,
+            page_padding=page_padding,
         )
         _notify_progress(progress_callback, "Updating manhwa.json")
         add_chapter(
@@ -403,6 +407,8 @@ def _process_images(
     dmca_text: str,
     dmca_opacity: float,
     progress_callback: Optional[Callable[[str, Optional[int], Optional[int]], None]] = None,
+    page_prefix: str = "",
+    page_padding: int = 3,
 ) -> List[str]:
     if not image_paths:
         raise ValueError("No images found in upload.")
@@ -411,7 +417,8 @@ def _process_images(
     for index, image_path in enumerate(image_paths, start=1):
         if progress_callback and (index == 1 or index == total or index % 5 == 0):
             _notify_progress(progress_callback, "converting", index, total)
-        output_path = chapter_dir / f"{index:03}.jpg"
+        output_name = f"{page_prefix}{index:0{page_padding}d}.jpg"
+        output_path = chapter_dir / output_name
         if mode == "original" and image_path.suffix.lower() in {".jpg", ".jpeg"}:
             shutil.copy(image_path, output_path)
         else:

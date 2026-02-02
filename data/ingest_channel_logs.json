@@ -1,0 +1,26 @@
+[
+  {
+    "time": "2026-02-02T19:08:23",
+    "event": "catalog_empty_fallback",
+    "details": {
+      "manhwa_id": "zolim-chaqaloq",
+      "reason": "no_catalog_entries"
+    }
+  },
+  {
+    "time": "2026-02-02T19:17:58",
+    "event": "catalog_empty_fallback",
+    "details": {
+      "manhwa_id": "zolim-chaqaloq",
+      "reason": "no_catalog_entries"
+    }
+  },
+  {
+    "time": "2026-02-02T19:18:01",
+    "event": "catalog_empty_fallback",
+    "details": {
+      "manhwa_id": "zolim-chaqaloq",
+      "reason": "no_catalog_entries"
+    }
+  }
+]

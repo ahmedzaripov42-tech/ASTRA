@@ -155,7 +155,7 @@ function renderReader(manhwas) {
   pages.innerHTML = "";
   const chapterBase = getChapterBase(manhwa.id, chapter.number);
   const observer = createLazyObserver();
-  const immediateCount = 2;
+  const immediateCount = Math.min(2, chapter.pages.length);
   const immediatePages = chapter.pages.slice(0, immediateCount);
   const deferredPages = chapter.pages.slice(immediateCount);
 
@@ -163,16 +163,16 @@ function renderReader(manhwas) {
     const img = document.createElement("img");
     img.alt = `${manhwa.title} ${chapter.number}`;
     img.decoding = "async";
-    img.loading = eager ? "eager" : "lazy";
+    img.loading = "lazy";
     if (highPriority && "fetchPriority" in img) {
       img.fetchPriority = "high";
     }
     const src = `${chapterBase}${page}`;
-    if (observer && !eager) {
+    if (!observer || eager) {
+      img.src = src;
+    } else {
       img.dataset.src = src;
       observer.observe(img);
-    } else {
-      img.src = src;
     }
     return img;
   };
@@ -349,7 +349,6 @@ function setupChapterNav(manhwa, chapter) {
 }
 
 function createLazyObserver() {
-  if ("loading" in HTMLImageElement.prototype) return null;
   if (!("IntersectionObserver" in window)) return null;
   return new IntersectionObserver(
     (entries, observer) => {

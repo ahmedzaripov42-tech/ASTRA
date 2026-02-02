@@ -188,6 +188,7 @@ h2 {
 
 .pages img {
   width: 100%;
+  height: auto;
   display: block;
   margin-bottom: 16px;
   border-radius: 6px;
