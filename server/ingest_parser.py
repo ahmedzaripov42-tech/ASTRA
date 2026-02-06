@@ -19,6 +19,16 @@ CHAPTER_KEYWORDS = (
     "часть",
 )
 
+HASHTAG_CHAPTER_PATTERNS = [
+    re.compile(r"^(?P<num>\d+(?:[.,]\d+)?)(?:[-_]?)(?P<kw>bob|qism|qisim|qsm)$", re.IGNORECASE),
+    re.compile(r"^(?P<kw>bob|qism|qisim|qsm)(?:[-_]?)(?P<num>\d+(?:[.,]\d+)?)$", re.IGNORECASE),
+    re.compile(r"^(?:chapter|ch)(?:[-_]?)(?P<num>\d+(?:[.,]\d+)?)$", re.IGNORECASE),
+]
+HASHTAG_TRAILING_NUMBER_PATTERN = re.compile(
+    r"^(?P<prefix>[a-z][\w\-]{2,})[-_]*(?P<num>\d+(?:[.,]\d+)?)$",
+    re.IGNORECASE,
+)
+
 STOP_TOKENS = {
     "manhwa",
     "manga",
@@ -66,10 +76,8 @@ def _match_manhwa(name: str, manhwas: List[dict]) -> Optional[str]:
 
 
 def _match_chapter(name: str) -> Optional[str]:
-    match = re.search(r"(?:ch|chapter|c)?\s*(\d+(?:\.\d+)?)", name)
-    if match:
-        return match.group(1)
-    return None
+    chapters = extract_chapter_numbers(name)
+    return chapters[0] if chapters else None
 
 
 def normalize_title(value: str) -> str:
@@ -127,10 +135,30 @@ def match_manhwa_fuzzy(text: str, manhwas: List[dict], min_score: float = 0.78) 
 def extract_chapter_numbers(text: str) -> List[str]:
     if not text:
         return []
+    results: List[str] = []
+    for value in re.findall(r"[\(\[\{]\s*(\d+(?:[.,]\d+)?)\s*[\)\]\}]", text):
+        results.append(value.replace(",", ".").strip())
+    raw_tags = re.findall(r"#([\w\-]+)", text)
+    for tag in raw_tags:
+        cleaned = tag.strip()
+        matched = False
+        for pattern in HASHTAG_CHAPTER_PATTERNS:
+            match = pattern.match(cleaned)
+            if not match:
+                continue
+            value = match.group("num")
+            if value:
+                results.append(value.replace(",", ".").strip())
+            matched = True
+            break
+        if matched:
+            continue
+        trailing = HASHTAG_TRAILING_NUMBER_PATTERN.match(cleaned)
+        if trailing and re.search(r"[a-z]", trailing.group("prefix"), flags=re.IGNORECASE):
+            results.append(trailing.group("num").replace(",", ".").strip())
     normalized = _normalize_for_chapters(text)
     normalized = normalized.replace("—", "-").replace("–", "-").replace("to", "-")
     normalized = normalized.replace("_", " ")
-    results: List[str] = []
     keyword = r"(?:" + "|".join(CHAPTER_KEYWORDS) + r")"
 
     def _norm_number(value: str) -> str:
@@ -160,6 +188,15 @@ def extract_chapter_numbers(text: str) -> List[str]:
     for pattern in single_patterns:
         for value in re.findall(pattern, normalized):
             results.append(_norm_number(value))
+
+    if not results:
+        numbers = [value.replace(",", ".").strip() for value in re.findall(r"\d+(?:[.,]\d+)?", normalized)]
+        if len(numbers) == 1:
+            results.append(numbers[0])
+        else:
+            tail = re.search(r"(\d+(?:[.,]\d+)?)\s*$", normalized)
+            if tail:
+                results.append(tail.group(1).replace(",", ".").strip())
 
     seen = set()
     ordered: List[str] = []

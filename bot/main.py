@@ -6,6 +6,7 @@ import logging
 from aiogram import Bot, Dispatcher
 from .config import BOT_NAME, BOT_TOKEN, MANHWA_PATH, UPLOADS_DIR
 from .handlers import ROUTERS
+from .handlers.ingest import hydrate_channel_cache_from_disk
 from .middlewares.intent_reset import IntentResetMiddleware
 from .state import STORAGE
 from server import processor
@@ -23,6 +24,14 @@ async def main() -> None:
         dp.include_router(router)
 
     UPLOADS_DIR.mkdir(parents=True, exist_ok=True)
+    memory_cache, disk_count = hydrate_channel_cache_from_disk()
+    logging.info(
+        "Startup cache counts: disk_cache_count=%s memory_cache_count=%s",
+        disk_count,
+        len(memory_cache),
+    )
+    if disk_count > 0 and len(memory_cache) == 0:
+        logging.error("Startup cache hydration failed: disk has entries but memory empty")
     logging.info("Starting bot: %s", BOT_NAME)
     manhwas = processor.load_manhwa(MANHWA_PATH)
     logging.info("Loaded %s manhwa from %s", len(manhwas), MANHWA_PATH.resolve())

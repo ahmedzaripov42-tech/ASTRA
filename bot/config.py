@@ -31,6 +31,16 @@ UPLOADS_DIR = DATA_DIR / "uploads"
 TELEGRAM_SAFE_FILE_MB = int(os.getenv("TELEGRAM_SAFE_FILE_MB", "20"))
 TELEGRAM_SAFE_FILE_BYTES = TELEGRAM_SAFE_FILE_MB * 1024 * 1024
 
+AUTO_INGEST_ALLOWED_EXTENSIONS = {
+    ext.strip().lower()
+    for ext in os.getenv("AUTO_INGEST_ALLOWED_EXTENSIONS", ".pdf,.zip,.rar,.cbz,.jpg,.jpeg,.png").split(",")
+    if ext.strip()
+}
+AUTO_INGEST_IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png"} & AUTO_INGEST_ALLOWED_EXTENSIONS
+AUTO_INGEST_SANITY_MULTIPLIER = float(os.getenv("AUTO_INGEST_SANITY_MULTIPLIER", "3"))
+AUTO_INGEST_CHANNEL_DEFAULT_MIN_COUNT = int(os.getenv("AUTO_INGEST_CHANNEL_DEFAULT_MIN_COUNT", "2"))
+AUTO_INGEST_CHANNEL_DEFAULT_MIN_SCORE = float(os.getenv("AUTO_INGEST_CHANNEL_DEFAULT_MIN_SCORE", "0.9"))
+
 QUALITY_MODES = {
     "original": "Original (100%)",
     "lossless": "Lossless",

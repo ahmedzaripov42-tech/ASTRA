@@ -8,7 +8,7 @@ def detect_file(file_path: str | Path) -> str:
     ext = path.suffix.lower()
     if ext == ".pdf":
         return "PDF"
-    if ext == ".zip":
+    if ext in {".zip", ".cbz"}:
         return "ZIP"
     if ext == ".rar":
         return "RAR"
